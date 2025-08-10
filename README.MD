@@ -62,35 +62,17 @@ source install/setup.bash
 ### 3-1) `ur_description/urdf/ur_macro.xacro` (센서 추가)
 
 ```xml
-<link name="${tf_prefix}ft_sensor_link">
-  <visual>
-    <geometry><cylinder radius="0.04" length="0.015"/></geometry>
-    <material name="silver"><color rgba="0.7 0.7 0.7 1.0"/></material>
-  </visual>
-  <collision><geometry><cylinder radius="0.04" length="0.015"/></geometry></collision>
-  <inertial>
-    <mass value="0.05"/>
-    <origin xyz="0 0 0"/>
-    <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
-  </inertial>
-</link>
-
-<joint name="${tf_prefix}ft_frame-ft_sensor" type="fixed">
-  <parent link="${tf_prefix}ft_frame"/>
-  <child  link="${tf_prefix}ft_sensor_link"/>
-  <origin xyz="0 0 0.01" rpy="0 0 0"/>
-</joint>
-
-<gazebo reference="${tf_prefix}ft_sensor_link">
-  <sensor name="tcp_ft_sensor" type="force_torque">
-    <always_on>true</always_on>
-    <update_rate>100</update_rate>
-    <force_torque>
-      <frame>sensor</frame>
-      <measure_direction>child_to_parent</measure_direction>
-    </force_torque>
-  </sensor>
-</gazebo>
+  <!-- Ignition Gazebo F/T sensor -->
+  <gazebo reference="${tf_prefix}wrist_3_joint">
+    <sensor name="tcp_ft_sensor" type="force_torque">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+	<frame>sensor</frame>
+        <measure_direction>child_to_parent</measure_direction>
+      </force_torque>
+    </sensor>                                                                                        
+                                                                                                     
 ```
 
 ---
