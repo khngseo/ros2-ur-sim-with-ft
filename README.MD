@@ -162,16 +162,19 @@ ft_sensor_broadcaster_spawner = Node(
 )
 
 # ROS <-> GZ 브릿지
-gz_sim_bridge = Node(
-    package="ros_gz_bridge",
-    executable="parameter_bridge",
-    arguments=[
-        "/clock@rosgraph_msgs/msg/Clock@ignition.msgs.Clock",
-        "/world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque"
-        "@geometry_msgs/msg/WrenchStamped@ignition.msgs.Wrench",
-    ],
-    output="screen",
-)
+# Make the /clock topic available in ROS                                                         
+    gz_sim_bridge = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        arguments=[
+            "/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock",
+            "/world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque@geometry_msg\
+s/msg/WrenchStamped[ignition.msgs.Wrench",
+        ],
+        output="screen",
+    )
+
+
 ```
 
 ---
