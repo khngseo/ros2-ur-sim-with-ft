@@ -1,0 +1,53 @@
+[0.007s] Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake /home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz -DCMAKE_INSTALL_PREFIX=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz
+[0.064s] -- The C compiler identification is GNU 11.4.0
+[0.121s] -- The CXX compiler identification is GNU 11.4.0
+[0.128s] -- Detecting C compiler ABI info
+[0.198s] -- Detecting C compiler ABI info - done
+[0.206s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.206s] -- Detecting C compile features
+[0.206s] -- Detecting C compile features - done
+[0.209s] -- Detecting CXX compiler ABI info
+[0.291s] -- Detecting CXX compiler ABI info - done
+[0.299s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.299s] -- Detecting CXX compile features
+[0.300s] -- Detecting CXX compile features - done
+[0.303s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.454s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.555s] -- Found launch_testing_ament_cmake: 1.0.10 (/opt/ros/humble/share/launch_testing_ament_cmake/cmake)
+[0.564s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[0.606s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+[0.621s] -- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+[0.621s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[0.621s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[0.621s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[0.645s] -- Found PythonExtra: .so  
+[0.647s] -- Found ament_cmake_pytest: 1.3.12 (/opt/ros/humble/share/ament_cmake_pytest/cmake)
+[0.713s] -- Configuring done
+[0.716s] -- Generating done
+[0.718s] -- Build files have been written to: /home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz
+[0.724s] Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz' returned '0': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake /home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz -DCMAKE_INSTALL_PREFIX=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz
+[0.725s] Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz -- -j8 -l8
+[0.764s] Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz' returned '0': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz -- -j8 -l8
+[0.765s] Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz
+[0.773s] -- Install configuration: ""
+[0.773s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/config
+[0.773s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/config/ur_controllers.yaml
+[0.773s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/launch
+[0.773s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/launch/ur_sim_control.launch.py
+[0.773s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/launch/ur_sim_moveit.launch.py
+[0.774s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ament_index/resource_index/package_run_dependencies/ur_simulation_gz
+[0.774s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ament_index/resource_index/parent_prefix_path/ur_simulation_gz
+[0.774s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/environment/ament_prefix_path.sh
+[0.774s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/environment/ament_prefix_path.dsv
+[0.774s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/environment/path.sh
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/environment/path.dsv
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/local_setup.bash
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/local_setup.sh
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/local_setup.zsh
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/local_setup.dsv
+[0.775s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/package.dsv
+[0.776s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ament_index/resource_index/packages/ur_simulation_gz
+[0.776s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/cmake/ur_simulation_gzConfig.cmake
+[0.776s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/cmake/ur_simulation_gzConfig-version.cmake
+[0.776s] -- Installing: /home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_simulation_gz/share/ur_simulation_gz/package.xml
+[0.778s] Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz' returned '0': AMENT_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/src/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/src/build/ur_simulation_gz

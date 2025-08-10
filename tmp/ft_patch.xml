@@ -1,0 +1,7 @@
+  <gazebo reference="tool0">
+    <sensor name="tcp_ft" type="force_torque">
+      <update_rate>100</update_rate>
+      <always_on>true</always_on>
+      <topic>~/tcp_ft/wrench</topic>
+    </sensor>
+  </gazebo>

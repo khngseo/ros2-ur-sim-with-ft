@@ -1,0 +1,247 @@
+[0.114s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build']
+[0.114s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=8, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x70b68e8617e0>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x70b68e9767a0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x70b68e9767a0>>, mixin_verb=('build',))
+[0.293s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.294s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/keehong/workspaces/ros-ur-gz-ruis'
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.294s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.305s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[0.306s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/build) by extensions ['ignore', 'ignore_ament_install']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/build) by extension 'ignore'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/build) ignored
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/install) by extensions ['ignore', 'ignore_ament_install']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/install) by extension 'ignore'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/install) ignored
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/log) by extensions ['ignore', 'ignore_ament_install']
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/log) by extension 'ignore'
+[0.307s] Level 1:colcon.colcon_core.package_identification:_identify(src/log) ignored
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extensions ['ignore', 'ignore_ament_install']
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extension 'ignore'
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extension 'ignore_ament_install'
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extensions ['colcon_pkg']
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extension 'colcon_pkg'
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extensions ['colcon_meta']
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extension 'colcon_meta'
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extensions ['ros']
+[0.308s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_description) by extension 'ros'
+[0.311s] DEBUG:colcon.colcon_core.package_identification:Package 'src/ur_description' with type 'ros.ament_cmake' and name 'ur_description'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['ignore', 'ignore_ament_install']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'ignore'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'ignore_ament_install'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['colcon_pkg']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'colcon_pkg'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['colcon_meta']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'colcon_meta'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['ros']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'ros'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['cmake', 'python']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'cmake'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'python'
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extensions ['python_setup_py']
+[0.311s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz) by extension 'python_setup_py'
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extensions ['ignore', 'ignore_ament_install']
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extension 'ignore'
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extension 'ignore_ament_install'
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extensions ['colcon_pkg']
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extension 'colcon_pkg'
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extensions ['colcon_meta']
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extension 'colcon_meta'
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extensions ['ros']
+[0.312s] Level 1:colcon.colcon_core.package_identification:_identify(src/ur_simulation_gz/ur_simulation_gz) by extension 'ros'
+[0.313s] DEBUG:colcon.colcon_core.package_identification:Package 'src/ur_simulation_gz/ur_simulation_gz' with type 'ros.ament_cmake' and name 'ur_simulation_gz'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['ignore', 'ignore_ament_install']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'ignore'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'ignore_ament_install'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['colcon_pkg']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'colcon_pkg'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['colcon_meta']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'colcon_meta'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['ros']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'ros'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['cmake', 'python']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'cmake'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'python'
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extensions ['python_setup_py']
+[0.313s] Level 1:colcon.colcon_core.package_identification:_identify(tmp) by extension 'python_setup_py'
+[0.314s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.314s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.314s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.314s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.314s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.343s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.343s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.345s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 2 installed packages in /home/keehong/workspaces/ros-ur-gz-ruis/install
+[0.347s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 353 installed packages in /opt/ros/humble
+[0.348s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[0.395s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'ur_description' is in: /home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description, /opt/ros/humble
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding ur_description
+
+This may be promoted to an error in a future release of colcon-override-check.
+[0.396s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_args' from command line to 'None'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_target' from command line to 'None'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_clean_cache' from command line to 'False'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_clean_first' from command line to 'False'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'cmake_force_configure' from command line to 'False'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'ament_cmake_args' from command line to 'None'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'catkin_cmake_args' from command line to 'None'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_description' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.402s] DEBUG:colcon.colcon_core.verb:Building package 'ur_description' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description', 'merge_install': False, 'path': '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_description', 'symlink_install': False, 'test_result_base': None}
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_args' from command line to 'None'
+[0.402s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_target' from command line to 'None'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_clean_cache' from command line to 'False'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_clean_first' from command line to 'False'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'cmake_force_configure' from command line to 'False'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'ament_cmake_args' from command line to 'None'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'catkin_cmake_args' from command line to 'None'
+[0.403s] Level 5:colcon.colcon_core.verb:set package 'ur_simulation_gz' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.403s] DEBUG:colcon.colcon_core.verb:Building package 'ur_simulation_gz' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz', 'merge_install': False, 'path': '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz', 'symlink_install': False, 'test_result_base': None}
+[0.403s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[0.404s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[0.404s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_description' with build type 'ament_cmake'
+[0.404s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_description'
+[0.406s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.406s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.406s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.415s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description -- -j8 -l8
+[0.452s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description -- -j8 -l8
+[0.462s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description
+[0.507s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ur_description)
+[0.507s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_description
+[0.509s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description' for CMake module files
+[0.510s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description' for CMake config files
+[0.512s] Level 1:colcon.colcon_core.shell:create_environment_hook('ur_description', 'cmake_prefix_path')
+[0.512s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.ps1'
+[0.512s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.dsv'
+[0.513s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.sh'
+[0.514s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/bin'
+[0.514s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/lib/pkgconfig/ur_description.pc'
+[0.514s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/lib/python3.10/site-packages'
+[0.514s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/bin'
+[0.515s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.ps1'
+[0.515s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.dsv'
+[0.516s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.sh'
+[0.517s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.bash'
+[0.517s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.zsh'
+[0.518s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/colcon-core/packages/ur_description)
+[0.519s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ur_description)
+[0.519s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description' for CMake module files
+[0.520s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description' for CMake config files
+[0.522s] Level 1:colcon.colcon_core.shell:create_environment_hook('ur_description', 'cmake_prefix_path')
+[0.522s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.ps1'
+[0.523s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.dsv'
+[0.523s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/hook/cmake_prefix_path.sh'
+[0.523s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/bin'
+[0.524s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/lib/pkgconfig/ur_description.pc'
+[0.524s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/lib/python3.10/site-packages'
+[0.524s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/bin'
+[0.524s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.ps1'
+[0.525s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.dsv'
+[0.525s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.sh'
+[0.526s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.bash'
+[0.526s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/ur_description/package.zsh'
+[0.526s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description/share/colcon-core/packages/ur_description)
+[0.527s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz' with build type 'ament_cmake'
+[0.527s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz'
+[0.527s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.527s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.537s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz': CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz -- -j8 -l8
+[0.573s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz' returned '0': CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/opt/ros/humble /usr/bin/cmake --build /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz -- -j8 -l8
+[0.575s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz': CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz
+[0.595s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ur_simulation_gz)
+[0.596s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz' for CMake module files
+[0.596s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz' returned '0': CMAKE_PREFIX_PATH=/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_description:/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz:/opt/ros/humble /usr/bin/cmake --install /home/keehong/workspaces/ros-ur-gz-ruis/build/ur_simulation_gz
+[0.596s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz' for CMake config files
+[0.597s] Level 1:colcon.colcon_core.shell:create_environment_hook('ur_simulation_gz', 'cmake_prefix_path')
+[0.597s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.ps1'
+[0.597s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.dsv'
+[0.598s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.sh'
+[0.598s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/bin'
+[0.598s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/lib/pkgconfig/ur_simulation_gz.pc'
+[0.599s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/lib/python3.10/site-packages'
+[0.599s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/bin'
+[0.599s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.ps1'
+[0.600s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.dsv'
+[0.600s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.sh'
+[0.600s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.bash'
+[0.601s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.zsh'
+[0.601s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/colcon-core/packages/ur_simulation_gz)
+[0.601s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ur_simulation_gz)
+[0.602s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz' for CMake module files
+[0.602s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz' for CMake config files
+[0.602s] Level 1:colcon.colcon_core.shell:create_environment_hook('ur_simulation_gz', 'cmake_prefix_path')
+[0.603s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.ps1'
+[0.603s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.dsv'
+[0.603s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/hook/cmake_prefix_path.sh'
+[0.604s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/bin'
+[0.604s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/lib/pkgconfig/ur_simulation_gz.pc'
+[0.604s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/lib/python3.10/site-packages'
+[0.604s] Level 1:colcon.colcon_core.environment:checking '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/bin'
+[0.605s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.ps1'
+[0.605s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.dsv'
+[0.606s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.sh'
+[0.606s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.bash'
+[0.606s] INFO:colcon.colcon_core.shell:Creating package script '/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/package.zsh'
+[0.607s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/colcon-core/packages/ur_simulation_gz)
+[0.607s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[0.607s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[0.607s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[0.607s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[0.612s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[0.612s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[0.612s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[0.624s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[0.624s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/keehong/workspaces/ros-ur-gz-ruis/install/local_setup.ps1'
+[0.626s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/keehong/workspaces/ros-ur-gz-ruis/install/_local_setup_util_ps1.py'
+[0.627s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/keehong/workspaces/ros-ur-gz-ruis/install/setup.ps1'
+[0.628s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/keehong/workspaces/ros-ur-gz-ruis/install/local_setup.sh'
+[0.629s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/keehong/workspaces/ros-ur-gz-ruis/install/_local_setup_util_sh.py'
+[0.630s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/keehong/workspaces/ros-ur-gz-ruis/install/setup.sh'
+[0.631s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/keehong/workspaces/ros-ur-gz-ruis/install/local_setup.bash'
+[0.631s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/keehong/workspaces/ros-ur-gz-ruis/install/setup.bash'
+[0.632s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/keehong/workspaces/ros-ur-gz-ruis/install/local_setup.zsh'
+[0.633s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/keehong/workspaces/ros-ur-gz-ruis/install/setup.zsh'

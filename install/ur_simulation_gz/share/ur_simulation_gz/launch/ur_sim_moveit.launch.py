@@ -1,0 +1,1 @@
+/home/keehong/workspaces/ros-ur-gz-ruis/src/ur_simulation_gz/ur_simulation_gz/launch/ur_sim_moveit.launch.py
