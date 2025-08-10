@@ -78,18 +78,27 @@ source install/setup.bash
 ---
 
 ### 3-2) `ur_description/urdf/ur.ros2_control.xacro` (ros2_control 인터페이스 추가)
-
+위치 변경. simulation이 아닐때만 작동하도록 되어있던것을 밖으로 뺌.
 ```xml
-<sensors>
-  <sensor name="tcp_ft_sensor">
-    <state_interface name="force.x"/>
-    <state_interface name="force.y"/>
-    <state_interface name="force.z"/>
-    <state_interface name="torque.x"/>
-    <state_interface name="torque.y"/>
-    <state_interface name="torque.z"/>
-  </sensor>
-</sensors>
+        <sensor name="${tf_prefix}tcp_ft_sensor">
+          <state_interface name="force.x"/>
+          <state_interface name="force.y"/>
+          <state_interface name="force.z"/>
+          <state_interface name="torque.x"/>
+          <state_interface name="torque.y"/>
+          <state_interface name="torque.z"/>
+        </sensor>
+
+      <xacro:unless value="${sim_gazebo or sim_ignition}">
+        <!-- <sensor name="${tf_prefix}tcp_fts_sensor"> -->
+        <!--   <state_interface name="force.x"/> -->
+        <!--   <state_interface name="force.y"/> -->
+        <!--   <state_interface name="force.z"/> -->
+        <!--   <state_interface name="torque.x"/> -->
+        <!--   <state_interface name="torque.y"/> -->
+        <!--   <state_interface name="torque.z"/> -->
+        <!-- </sensor> -->
+
 ```
 
 ---
@@ -200,3 +209,75 @@ ros2 topic echo /force_torque_sensor_broadcaster/wrench
 - `ur_simulation_gz/config/ur_controllers.yaml`
 - `ur_simulation_gz/worlds/empty_with_ft.sdf`
 - `ur_simulation_gz/launch/ur_sim_control.launch.py`
+
+---
+
+## Notes on `tf_prefix`
+
+When launching the UR5e in Ignition Gazebo with ROS 2, you can optionally set a `tf_prefix` argument in the `xacro` to avoid TF frame name conflicts, especially in **multi-robot** scenarios.
+
+### Why `tf_prefix` is important
+Without a prefix, two robots will produce identical frame names like:
+
+```
+base_link
+wrist_3_joint
+tool0
+```
+
+In ROS TF, identical frame names will clash and cause transform data to be overwritten.
+
+By using a prefix, you can distinguish them:
+
+```
+ur5_1/base_link
+ur5_1/wrist_3_joint
+ur5_1/tool0
+ur5_2/base_link
+...
+```
+
+### How to set it
+Pass the prefix when generating the URDF or launching the simulation:
+
+```bash
+ros2 launch ur_simulation_gz ur_sim_control.launch.py tf_prefix:="ur5_1/"
+```
+
+If `tf_prefix` is empty (`""`), the names remain unchanged.
+
+### How it appears in Xacro
+In files like `ur_macro.xacro`, you may see:
+
+```xml
+<gazebo reference="${tf_prefix}wrist_3_joint">
+```
+
+If `tf_prefix` is `"ur5_1/"`, the resolved reference will be `ur5_1/wrist_3_joint`.
+
+### Adjusting sensor names
+When `tf_prefix` is non-empty, update your controller or sensor configuration to match the prefixed names.  
+For example, in `force_torque_sensor_broadcaster` parameters:
+
+```yaml
+sensor_name: ur5_1/tcp_ft_sensor
+state_interface_names:
+  - ur5_1/tcp_ft_sensor/force.x
+  - ur5_1/tcp_ft_sensor/force.y
+  - ur5_1/tcp_ft_sensor/force.z
+  - ur5_1/tcp_ft_sensor/torque.x
+  - ur5_1/tcp_ft_sensor/torque.y
+  - ur5_1/tcp_ft_sensor/torque.z
+```
+
+If `tf_prefix` is empty, omit the prefix:
+
+```yaml
+sensor_name: tcp_ft_sensor
+...
+```
+
+**Summary:**  
+- **Single robot:** leave `tf_prefix` empty.  
+- **Multiple robots:** give each one a unique `tf_prefix` and match it in sensor/controller configs.
+
