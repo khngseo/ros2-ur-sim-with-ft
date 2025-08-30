@@ -1,0 +1,14 @@
+# ROS 2 colcon build artifacts
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VSCode / IDE configs (선택)
+.vscode/
+.idea/
+
