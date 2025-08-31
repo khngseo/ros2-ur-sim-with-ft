@@ -189,6 +189,12 @@ def launch_setup(context, *args, **kwargs):
         executable="parameter_bridge",
         arguments=[
             "/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock",
+             "/world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque@geometry_msg\
+s/msg/WrenchStamped[ignition.msgs.Wrench",
+        ],
+        remappings=[
+        ("/world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque",
+         "/tcp_ft_sensor/wrench")
         ],
         output="screen",
     )
@@ -315,11 +321,25 @@ def generate_launch_description():
             "gazebo_gui", default_value="true", description="Start gazebo with GUI?"
         )
     )
+
+    # declared_arguments.append(
+    #     DeclareLaunchArgument(
+    #         "world_file",
+    #         default_value="empty_with_ft.sdf",
+    #         description="Gazebo world file (absolute path or filename from the gazebosim worlds collection) containing a custom world.",
+    #     )
+    # )
+
     declared_arguments.append(
         DeclareLaunchArgument(
             "world_file",
-            default_value="empty.sdf",
-            description="Gazebo world file (absolute path or filename from the gazebosim worlds collection) containing a custom world.",
+            default_value=PathJoinSubstitution(
+                [FindPackageShare("ur_simulation_gz"), "world", "empty_with_ft.sdf"]
+            ),
+            description=(
+                "Gazebo world file. Defaults to the package-local worlds/empty_with_ft.sdf. "
+                "You may override with an absolute path or another file."
+            ),
         )
     )
 

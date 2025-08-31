@@ -437,6 +437,19 @@
       <origin xyz="0 0 0" rpy="${pi} 0 0"/>
     </joint>
 
+
+    <!-- Ignition Gazebo F/T sensor -->
+    <gazebo reference="${tf_prefix}wrist_3_joint">
+      <sensor name="tcp_ft_sensor" type="force_torque">
+        <always_on>true</always_on>
+        <update_rate>100</update_rate>
+        <force_torque>
+          <frame>sensor</frame>
+          <measure_direction>child_to_parent</measure_direction>
+        </force_torque>
+      </sensor>        
+    </gazebo>
+      
     <!-- ROS-Industrial 'base' frame - base_link to UR 'Base' Coordinates transform -->
     <link name="${tf_prefix}base"/>
     <joint name="${tf_prefix}base_link-base_fixed_joint" type="fixed">
