@@ -29,4 +29,4 @@ trajectory_smoother:
     chomp.filter_mode: false
     chomp.enable_failure_recovery: true
     chomp.max_recovery_attempts: 5
-    chomp.trajectory_initialization_method: "CUBIC"
+    chomp.trajectory_initialization_method: "quintic-spline"

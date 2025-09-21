@@ -41,6 +41,12 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    kinematics_yaml = PathJoinSubstitution([
+        FindPackageShare("ur_moveit_config"),  # or "ur_moveit_config" if you use the installed one
+        "config",
+        "kinematics.yaml",
+    ])
+
     trajectory_smoother_node = Node(
         package="trajectory_smoother_service",
         executable="trajectory_smoother_node",
@@ -48,6 +54,7 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
         parameters=[
             smoother_params_file,
+            kinematics_yaml,
             {"use_sim_time": use_sim_time},
         ],
     )
@@ -117,10 +124,15 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "moveit_joint_limits_file",
-            default_value="joint_limits.yaml",
+            default_value=PathJoinSubstitution([
+                FindPackageShare("trajectory_smoother_service"),
+                "config",
+                "joint_limits.yaml",
+            ]),
             description="MoveIt joint limits YAML file.",
         )
     )
+
     declared_arguments.append(
         DeclareLaunchArgument(
             "prefix",

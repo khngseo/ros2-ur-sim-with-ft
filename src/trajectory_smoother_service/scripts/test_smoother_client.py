@@ -102,7 +102,7 @@ def test_smoother():
             original_time = list(range(len(test_waypoints)))
             for joint_idx, joint_name in enumerate(response.trajectory.joint_names):
                 plt.figure(1)
-                plt.plot(times, pos_series[joint_idx], label=f'smoothed {joint_name}')
+                plt.plot(times, pos_series[joint_idx], '.-', label=f'smoothed {joint_name}')
                 plt.plot(
                     original_time,
                     [test_waypoints[i][joint_idx] for i in range(len(test_waypoints))],
