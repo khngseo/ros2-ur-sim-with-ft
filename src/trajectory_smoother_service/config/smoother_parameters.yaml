@@ -1,0 +1,32 @@
+trajectory_smoother:
+  ros__parameters:
+    planning_group: "ur_manipulator"
+    smoothed_topic: "smooth_trajectory"
+    publish_on_success: true
+    initial_discretization: 0.05
+    default_velocity_scaling: 0.5
+    default_acceleration_scaling: 0.5
+    time_parameterization.path_tolerance: 0.1
+    time_parameterization.resample_dt: 0.1
+    time_parameterization.min_angle_change: 0.001
+
+    chomp.planning_time_limit: 10.0
+    chomp.max_iterations: 200
+    chomp.max_iterations_after_collision_free: 20
+    chomp.smoothness_cost_weight: 0.1
+    chomp.obstacle_cost_weight: 1.0
+    chomp.learning_rate: 0.01
+    chomp.smoothness_cost_velocity: 1.0
+    chomp.smoothness_cost_acceleration: 0.0
+    chomp.smoothness_cost_jerk: 0.0
+    chomp.use_stochastic_descent: false
+    chomp.ridge_factor: 0.01
+    chomp.use_pseudo_inverse: true
+    chomp.pseudo_inverse_ridge_factor: 0.0001
+    chomp.joint_update_limit: 0.1
+    chomp.min_clearance: 0.2
+    chomp.collision_threshold: 0.07
+    chomp.filter_mode: false
+    chomp.enable_failure_recovery: true
+    chomp.max_recovery_attempts: 5
+    chomp.trajectory_initialization_method: "CUBIC"

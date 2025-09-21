@@ -1,0 +1,9 @@
+# Request
+trajectory_msgs/JointTrajectoryPoint[] waypoints
+float64 max_velocity_scaling_factor 0.1
+float64 max_acceleration_scaling_factor 0.1
+---
+# Response  
+trajectory_msgs/JointTrajectory trajectory
+bool success
+string message
