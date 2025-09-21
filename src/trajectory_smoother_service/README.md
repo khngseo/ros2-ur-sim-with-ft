@@ -8,12 +8,10 @@ publish it to `/smooth_trajectory` for downstream controllers.
 ## Features
 
 - Uses MoveIt's CHOMP (`chomp_motion_planner`) to optimise coarse waypoint sets.
-- Applies Time-Optimal Trajectory Generation (TOTG) with Parabolic fallback to
-  enforce velocity/acceleration limits.
-- Publishes the smoothed trajectory when requested, enabling quick visualisation
-  in RViz or logging tools.
-- Includes test scripts and launch files for integration with the UR Gazebo
-  simulation.
+- Applies Time-Optimal Trajectory Generation (TOTG) with Parabolic fallback to enforce velocity/acceleration limits.
+- Publishes the smoothed trajectory when requested, enabling quick visualisation in RViz or logging tools.
+- Includes test scripts and launch files for integration with the UR Gazebo simulation.
+- Respects joint velocity/acceleration limits from the robot model, with scaling knobs for additional safety margins.
 
 ## Dependencies
 
@@ -87,12 +85,33 @@ Request:
 Response:
   trajectory_msgs/JointTrajectory trajectory
   bool success
-  string message
+string message
 ```
 
 Provide joint positions (velocities/accelerations optional) for each waypoint.
-Set the scaling factors (0 < value ≤ 1) to derate the robot limits used during
+Set the scaling factors (0 < value ≤ 1) to derate the robot limits used during
 timing.
+
+## Joint Limits & Kinematics
+
+- MoveIt reads joint limits from the URDF and any `joint_limits.yaml`. For UR robots the
+  default file resides in `/opt/ros/humble/share/ur_moveit_config/config/joint_limits.yaml`.
+- To version-control custom limits, copy that file under `trajectory_smoother_service/config/`
+  and point the launch argument `moveit_joint_limits_file` to your copy.
+- The smoother multiplies those limits by `max_velocity_scaling_factor` and
+  `max_acceleration_scaling_factor` (defaults in `smoother_parameters.yaml`). Lower them for
+  gentler execution.
+- If no kinematics parameters are supplied, MoveIt falls back to the KDL solver and logs a
+  warning. To use the UR-specific IK plugin, include `config/kinematics.yaml` in the smoother’s
+  parameters (copy from `ur_moveit_config` or reference the installed file).
+
+## Post-processing Tips
+
+- CHOMP may densify the waypoint list internally (the response often contains many more points
+  than provided). If your controller requires samples at a fixed interval, resample the returned
+  trajectory to your servo period while keeping positions/velocities/accelerations consistent.
+- To stretch the total duration beyond the limits, either reduce the scaling factors or
+  post-multiply every `time_from_start` by a constant > 1 after TOTG runs.
 
 ## Integrating with an OMPL Planner
 
