@@ -81,6 +81,8 @@ Request:
   trajectory_msgs/JointTrajectoryPoint[] waypoints
   float64 max_velocity_scaling_factor
   float64 max_acceleration_scaling_factor
+  float64 totg_resample_dt
+  float64 hermite_resample_dt
 
 Response:
   trajectory_msgs/JointTrajectory trajectory
@@ -90,7 +92,9 @@ string message
 
 Provide joint positions (velocities/accelerations optional) for each waypoint.
 Set the scaling factors (0 < value ≤ 1) to derate the robot limits used during
-timing.
+timing.  Set `totg_resample_dt` to a positive value if you want TOTG to resample
+at that interval, and `hermite_resample_dt` to control the output spacing; leave
+either ≤ 0 to use the defaults from `smoother_parameters.yaml`.
 
 ## Joint Limits & Kinematics
 

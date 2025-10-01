@@ -1,6 +1,6 @@
 trajectory_smoother:
   ros__parameters:
-    planning_group: "ur_manipulator"
+    planning_group: "ur5e_manipulator"
     smoothed_topic: "smooth_trajectory"
     publish_on_success: true
     initial_discretization: 0.05

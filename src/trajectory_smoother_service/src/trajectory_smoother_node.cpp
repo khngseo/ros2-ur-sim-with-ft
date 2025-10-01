@@ -34,7 +34,130 @@
 namespace
 {
 constexpr double kScalingMin = 1e-3;
+
+inline double toSeconds(const builtin_interfaces::msg::Duration& d)
+{
+  return static_cast<double>(d.sec) + 1e-9 * static_cast<double>(d.nanosec);
 }
+
+inline builtin_interfaces::msg::Duration toDuration(double t)
+{
+  builtin_interfaces::msg::Duration out;
+  if (t < 0.0)
+  {
+    t = 0.0;
+  }
+  const double s = std::floor(t);
+  out.sec = static_cast<int32_t>(s);
+  out.nanosec = static_cast<uint32_t>(std::round((t - s) * 1e9));
+  return out;
+}
+
+trajectory_msgs::msg::JointTrajectory resampleQuintic(const trajectory_msgs::msg::JointTrajectory& in, double dt)
+{
+  trajectory_msgs::msg::JointTrajectory out;
+  out.joint_names = in.joint_names;
+  out.header = in.header;
+
+  if (in.points.size() < 2 || dt <= 0.0)
+  {
+    out.points = in.points;
+    return out;
+  }
+
+  const std::size_t joint_count = in.joint_names.size();
+  out.points.reserve(in.points.size());
+  out.points.push_back(in.points.front());
+
+  auto access = [&](const std::vector<double>& data, std::size_t idx, double fallback) {
+    return (data.size() == joint_count) ? data[idx] : fallback;
+  };
+
+  for (std::size_t seg = 0; seg + 1 < in.points.size(); ++seg)
+  {
+    const auto& p0 = in.points[seg];
+    const auto& p1 = in.points[seg + 1];
+
+    const double t0 = toSeconds(p0.time_from_start);
+    const double t1 = toSeconds(p1.time_from_start);
+    double T = t1 - t0;
+    if (T <= 1e-9)
+    {
+      T = 1e-9;
+    }
+
+    const int steps = std::max(1, static_cast<int>(std::floor(T / dt)));
+
+    for (int i = 1; i <= steps; ++i)
+    {
+      const double tau = static_cast<double>(i) * dt;
+      if (tau >= T - 1e-9)
+      {
+        continue;
+      }
+
+      const double s = tau / T;
+      const double s2 = s * s;
+      const double s3 = s2 * s;
+      const double s4 = s3 * s;
+      const double s5 = s4 * s;
+
+      const double h00 = 1 - 10 * s3 + 15 * s4 - 6 * s5;
+      const double h01 = 10 * s3 - 15 * s4 + 6 * s5;
+      const double h10 = s - 6 * s3 + 8 * s4 - 3 * s5;
+      const double h11 = -4 * s3 + 7 * s4 - 3 * s5;
+      const double h20 = 0.5 * s2 - 1.5 * s3 + 1.5 * s4 - 0.5 * s5;
+      const double h21 = 0.5 * s3 - s4 + 0.5 * s5;
+
+      const double dh00 = -30 * s2 + 60 * s3 - 30 * s4;
+      const double dh01 = 30 * s2 - 60 * s3 + 30 * s4;
+      const double dh10 = 1.0 - 18 * s2 + 32 * s3 - 15 * s4;
+      const double dh11 = -12 * s2 + 28 * s3 - 15 * s4;
+      const double dh20 = s - 4.5 * s2 + 6 * s3 - 2.5 * s4;
+      const double dh21 = 1.5 * s2 - 4 * s3 + 2.5 * s4;
+
+      const double d2h00 = -60 * s + 180 * s2 - 120 * s3;
+      const double d2h01 = 60 * s - 180 * s2 + 120 * s3;
+      const double d2h10 = -36 * s + 96 * s2 - 60 * s3;
+      const double d2h11 = -24 * s + 84 * s2 - 60 * s3;
+      const double d2h20 = 1.0 - 9 * s + 18 * s2 - 10 * s3;
+      const double d2h21 = 3 * s - 12 * s2 + 10 * s3;
+
+      trajectory_msgs::msg::JointTrajectoryPoint pt;
+      pt.positions.resize(joint_count);
+      pt.velocities.resize(joint_count);
+      pt.accelerations.resize(joint_count);
+
+      for (std::size_t j = 0; j < joint_count; ++j)
+      {
+        const double q0 = access(p0.positions, j, 0.0);
+        const double q1 = access(p1.positions, j, 0.0);
+        const double v0 = access(p0.velocities, j, 0.0);
+        const double v1 = access(p1.velocities, j, 0.0);
+        const double a0 = access(p0.accelerations, j, 0.0);
+        const double a1 = access(p1.accelerations, j, 0.0);
+
+        const double q = h00 * q0 + h01 * q1 + h10 * (T * v0) + h11 * (T * v1) + h20 * (T * T * a0) +
+                         h21 * (T * T * a1);
+        const double dqds = dh00 * q0 + dh01 * q1 + dh10 * (T * v0) + dh11 * (T * v1) + dh20 * (T * T * a0) +
+                            dh21 * (T * T * a1);
+        const double d2qds2 = d2h00 * q0 + d2h01 * q1 + d2h10 * (T * v0) + d2h11 * (T * v1) +
+                              d2h20 * (T * T * a0) + d2h21 * (T * T * a1);
+
+        pt.positions[j] = q;
+        pt.velocities[j] = dqds / T;
+        pt.accelerations[j] = d2qds2 / (T * T);
+      }
+
+      pt.time_from_start = toDuration(t0 + tau);
+      out.points.emplace_back(std::move(pt));
+    }
+  }
+
+  out.points.push_back(in.points.back());
+  return out;
+}
+}  // namespace
 
 class TrajectorySmoother : public rclcpp::Node
 {
@@ -343,7 +466,9 @@ private:
       const double acceleration_scaling =
           clampScalingFactor(request->max_acceleration_scaling_factor, default_acceleration_scaling_);
 
-      trajectory_processing::TimeOptimalTrajectoryGeneration totg(totg_path_tolerance_, totg_resample_dt_,
+      const double totg_dt =
+          (request->totg_resample_dt > 0.0) ? request->totg_resample_dt : totg_resample_dt_;
+      trajectory_processing::TimeOptimalTrajectoryGeneration totg(totg_path_tolerance_, totg_dt,
                                                                  totg_min_angle_change_);
       bool timing_ok = totg.computeTimeStamps(*working_trajectory, velocity_scaling, acceleration_scaling);
 
@@ -365,7 +490,10 @@ private:
       robot_traj_msg.joint_trajectory.header.frame_id = planning_scene_->getPlanningFrame();
       robot_traj_msg.joint_trajectory.header.stamp = this->now();
 
-      response->trajectory = robot_traj_msg.joint_trajectory;
+      double hermite_dt = (request->hermite_resample_dt > 0.0) ? request->hermite_resample_dt : totg_dt;
+      hermite_dt = std::clamp(hermite_dt, 1e-4, 1.0);
+
+      response->trajectory = resampleQuintic(robot_traj_msg.joint_trajectory, hermite_dt);
       response->success = true;
       response->message = optimisation_ok ? "CHOMP optimisation success" : "Returned time-parameterised input trajectory";
 
@@ -374,9 +502,10 @@ private:
         smooth_trajectory_pub_->publish(response->trajectory);
       }
 
-      RCLCPP_INFO(get_logger(), "Provided %s trajectory with %zu waypoints (vel_scale=%.3f, acc_scale=%.3f)",
+      RCLCPP_INFO(get_logger(),
+                  "Provided %s trajectory with %zu waypoints (vel_scale=%.3f, acc_scale=%.3f, totg_dt=%.4f, hermite_dt=%.4f)",
                   optimisation_ok ? "smoothed" : "original", response->trajectory.points.size(), velocity_scaling,
-                  acceleration_scaling);
+                  acceleration_scaling, totg_dt, hermite_dt);
     }
     catch (const std::exception& ex)
     {

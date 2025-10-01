@@ -1,0 +1,1502 @@
+can you analyze the current file structure of the open folder in this CODE app? then I have a task for you.
+
+
+
+can you analyze the current file structure of the open folder in this CODE app? then I have a task for you.
+
+
+Repo Layout
+
+src holds three ROS packages: trajectory_smoother_service (C++ nodes + Python clients, srv, launch scripts), ur_description (UR robot description: urdf, meshes, configs, docs), and ur_simulation_gz (Gazebo/ros2 simulation package with configs, launch files, worlds, tests).
+Workspace root also tracks build artifacts (build, install, log), temporary/generated files (tmp, generated_urdf.xml, err.txt), and a params_1.yaml.
+Ready for the next task whenever you are.
+
+the current status: ur_sim_control.launch.py works. ur_sim_moveit.launch.py also works. I'd like to run a service node smoother_trajectory, which receives a list of waypoints (potentially derived by OMPL algorithm) then make it smooth trajectory using CHOMP (or STOMP if you can help me install the algorithm) and then finally reparametrize it with v_max and a_max to publish /smooth_trajectory . I wanted to use ur_sim_control.launch.py as the baseline. then we could build a second launch file to launch after ur_sim_control.launch.py to enable some moveit pacakges and the smoother_traectory service. The whole point of doing this: I have a project that is behind my company firewall and hard to share with you. It controls a real UR5E robot. currently, a vision node determines waypoints and pass it to a planner node. it plans only using OMPL then pass it to a controller node. I'd like to use feedforward velocity term in the velocity servo command and thus need a smooth trajectory with continuous velocity profile. I'm trying to develop a service that can be easily plugged in to my current ompl planner node.
+
+
+Trajectory Smoother
+
+Added a CHOMP-backed smoothing node that checks waypoint dimensions, seeds CHOMP, applies TOTG timing (with iterative fallback), and publishes /smooth_trajectory while exposing runtime tuning knobs (trajectory_smoother_service/src/trajectory_smoother_node.cpp:42).
+Supplied a default YAML bundle and launch plumbing so the smoother’s parameters can be overridden when launched alone or alongside the sim stack (trajectory_smoother_service/config/smoother_parameters.yaml:3, trajectory_smoother_service/launch/smoother_launch.py:10, ur_simulation_gz/ur_simulation_gz/launch/ur_sim_control_moveit_smoother.launch.py:21).
+Updated build metadata to pull in MoveIt CHOMP libraries and install the new config assets with the package (trajectory_smoother_service/CMakeLists.txt:9, trajectory_smoother_service/package.xml:13).
+Tests
+
+colcon build --packages-select trajectory_smoother_service
+Next steps
+
+Launch ur_sim_control_moveit_smoother.launch.py to confirm /smooth_trajectory responses in Gazebo with sample waypoints.
+Tune smoother_parameters.yaml (CHOMP weights, scaling factors) against your controller expectations before deploying on the real UR5e.
+$ ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py
+[INFO] [launch]: All log files can be found below /home/keehong/.ros/log/2025-09-21-21-23-27-744980-keehong-900X3T-900X3U-13250
+[INFO] [launch]: Default logging verbosity is set to INFO
+[WARNING] [launch_ros.actions.node]: Parameter file path is not a file: /opt/ros/humble/share/ur_moveit_config/config/moveit_controllers.yaml
+[WARNING] [launch_ros.actions.node]: Parameter file path is not a file: /opt/ros/humble/share/ur_moveit_config/config/moveit_controllers.yaml
+[ERROR] [launch]: Caught exception in launch (see debug for traceback): executable 'moveit_trajectory_execution_manager' not found on the libexec directory '/opt/ros/humble/lib/moveit_ros_move_group'
+
+
+Launch Fixes
+
+ur_sim_control_moveit_smoother.launch.py:98 now points MoveIt at the real controllers file (controllers.yaml) so the earlier parameter-file warnings disappear.
+Removed the nonexistent moveit_trajectory_execution_manager node and kept the planning-scene monitor plus smoother; the extra executable isn’t required in Humble (MoveIt manages trajectory execution inside move_group).
+Try launching again (ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py). If MoveIt still needs custom controller config, we can drop a tailored YAML into your workspace and point this launch arg at it.
+
+$ ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py
+[INFO] [launch]: All log files can be found below /home/keehong/.ros/log/2025-09-21-21-25-27-908440-keehong-900X3T-900X3U-13820
+[INFO] [launch]: Default logging verbosity is set to INFO
+[ERROR] [launch]: Caught exception in launch (see debug for traceback): executable 'moveit_planning_scene_monitor' not found on the libexec directory '/opt/ros/humble/lib/moveit_ros_planning'
+keehong@keehong-900X3T-900X3U:~/workspaces/ros-ur-gz-ruis$
+
+
+moveit_planning_scene_monitor isn’t provided as a standalone executable, so I removed that node from ur_sim_control_moveit_smoother.launch.py. The launch now just brings up move_group, RViz, and the smoother—those cover the needed functionality. Please rerun ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py; it should start without that missing-executable error.
+
+do you mean launch it after launching ur_sim_contro.launch.py first or just it alone?
+
+
+Run ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py by itself. It already chains in the core ur_sim_control.launch.py, so launching both separately would give you duplicate Gazebo/UR nodes. If you ever want just the base sim, use ur_sim_control.launch.py; otherwise stick with the combined smoother launch.
+
+$ ros2 launch ur_simulation_gz ur_sim_control_moveit_smoother.launch.py
+[INFO] [launch]: All log files can be found below /home/keehong/.ros/log/2025-09-21-21-27-37-895089-keehong-900X3T-900X3U-14328
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [14348]
+[INFO] [spawner-2]: process started with pid [14350]
+[INFO] [spawner-3]: process started with pid [14352]
+[INFO] [create-4]: process started with pid [14354]
+[INFO] [ign gazebo-5]: process started with pid [14356]
+[INFO] [parameter_bridge-6]: process started with pid [14359]
+[INFO] [move_group-7]: process started with pid [14361]
+[INFO] [rviz2-8]: process started with pid [14363]
+[INFO] [trajectory_smoother_node-9]: process started with pid [14365]
+[rviz2-8] terminate called after throwing an instance of 'rclcpp::exceptions::RCLInvalidROSArgsError'
+[rviz2-8] what(): failed to parse arguments: Couldn't parse params file: '--params-file /opt/ros/humble/share/ur_moveit_config/config/joint_limits.yaml'. Error: Cannot have a value before ros__parameters at line 9, at ./src/parse.c:793, at ./src/rcl/arguments.c:406
+[move_group-7] [ERROR] [1758457659.074786590] [rcl]: Failed to parse global arguments
+[move_group-7] terminate called after throwing an instance of 'rclcpp::exceptions::RCLInvalidROSArgsError'
+[move_group-7] what(): failed to initialize rcl: Couldn't parse params file: '--params-file /opt/ros/humble/share/ur_moveit_config/config/ompl_planning.yaml'. Error: Cannot have a value before ros__parameters at line 3, at ./src/parse.c:793, at ./src/rcl/arguments.c:406
+[move_group-7] Stack trace (most recent call last):
+[move_group-7] #14 Object "", at 0xffffffffffffffff, in
+[move_group-7] #13 Object "/opt/ros/humble/lib/moveit_ros_move_group/move_group", at 0x5978769d5724, in
+[create-4] [INFO] [1758457659.091171687] [ros_gz_sim]: Requesting list of world names.
+[trajectory_smoother_node-9] [ERROR] [1758457659.107720213] [rcl]: Failed to parse global arguments
+[trajectory_smoother_node-9] terminate called after throwing an instance of 'rclcpp::exceptions::RCLInvalidROSArgsError'
+[trajectory_smoother_node-9] what(): failed to initialize rcl: Couldn't parse params file: '--params-file /opt/ros/humble/share/ur_moveit_config/config/controllers.yaml'. Error: Sequences can only be values and not keys in params. Error at line 2
+[trajectory_smoother_node-9] , at ./src/parse.c:828, at ./src/rcl/arguments.c:406
+[parameter_bridge-6] [INFO] [1758457659.178112621] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/clock (ignition.msgs.Clock) -> /clock (rosgraph_msgs/msg/Clock)] (Lazy 0)
+[parameter_bridge-6] [INFO] [1758457659.180298915] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque (ignition.msgs.Wrench) -> /world/empty/model/ur/joint/wrist_3_joint/sensor/tcp_ft_sensor/forcetorque (geometry_msgs/msg/WrenchStamped)] (Lazy 0)
+[move_group-7] #12 Source "../csu/libc-start.c", line 392, in __libc_start_main_impl [0x7207c9a29e3f]
+[move_group-7] #11 Source "../sysdeps/nptl/libc_start_call_main.h", line 58, in __libc_start_call_main [0x7207c9a29d8f]
+[move_group-7] #10 Object "/opt/ros/humble/lib/moveit_ros_move_group/move_group", at 0x5978769d38e5, in
+[move_group-7] #9 Object "/opt/ros/humble/lib/librclcpp.so", at 0x7207ca291ae3, in rclcpp::init(int, char const* const*, rclcpp::InitOptions const&, rclcpp::SignalHandlerOptions)
+[move_group-7] #8 Object "/opt/ros/humble/lib/librclcpp.so", at 0x7207ca1e7a01, in rclcpp::Context::init(int, char const* const*, rclcpp::InitOptions const&)
+[move_group-7] #7 Object "/opt/ros/humble/lib/librclcpp.so", at 0x7207ca1ec418, in rclcpp::exceptions::throw_from_rcl_error(int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, rcutils_error_state_s const*, void (*)())
+[move_group-7] #6 Object "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", at 0x7207c9eae1fd, in std::rethrow_exception(std::__exception_ptr::exception_ptr)
+[move_group-7] #5 Object "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", at 0x7207c9eae276, in std::terminate()
+[move_group-7] #4 Object "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", at 0x7207c9eae20b, in
+[move_group-7] #3 Object "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", at 0x7207c9ea2b9d, in
+[move_group-7] #2 Source "./stdlib/abort.c", line 79, in abort [0x7207c9a287f2]
+[move_group-7] #1 Source "../sysdeps/posix/raise.c", line 26, in raise [0x7207c9a42475]
+[move_group-7] #0 | Source "./nptl/pthread_kill.c", line 89, in __pthread_kill_internal
+[move_group-7] | Source "./nptl/pthread_kill.c", line 78, in __pthread_kill_implementation
+[move_group-7] Source "./nptl/pthread_kill.c", line 44, in __pthread_kill [0x7207c9a969fc]
+[move_group-7] Aborted (Signal sent by tkill() 14361 1000)
+[robot_state_publisher-1] [INFO] [1758457659.400195546] [robot_state_publisher]: got segment base
+[robot_state_publisher-1] [INFO] [1758457659.400319099] [robot_state_publisher]: got segment base_link
+[robot_state_publisher-1] [INFO] [1758457659.400337215] [robot_state_publisher]: got segment base_link_inertia
+[robot_state_publisher-1] [INFO] [1758457659.400348333] [robot_state_publisher]: got segment flange
+[robot_state_publisher-1] [INFO] [1758457659.400357931] [robot_state_publisher]: got segment forearm_link
+[robot_state_publisher-1] [INFO] [1758457659.400367140] [robot_state_publisher]: got segment ft_frame
+[robot_state_publisher-1] [INFO] [1758457659.400375989] [robot_state_publisher]: got segment ground_plane
+[robot_state_publisher-1] [INFO] [1758457659.400415528] [robot_state_publisher]: got segment shoulder_link
+[robot_state_publisher-1] [INFO] [1758457659.400428027] [robot_state_publisher]: got segment tool0
+[robot_state_publisher-1] [INFO] [1758457659.400437208] [robot_state_publisher]: got segment upper_arm_link
+[robot_state_publisher-1] [INFO] [1758457659.400446017] [robot_state_publisher]: got segment world
+[robot_state_publisher-1] [INFO] [1758457659.400454911] [robot_state_publisher]: got segment wrist_1_link
+[robot_state_publisher-1] [INFO] [1758457659.400463688] [robot_state_publisher]: got segment wrist_2_link
+[robot_state_publisher-1] [INFO] [1758457659.400472186] [robot_state_publisher]: got segment wrist_3_link
+[ign gazebo-5] qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+[spawner-2] [INFO] [1758457659.573898143] [spawner_joint_state_broadcaster]: waiting for service /controller_manager/list_controllers to become available...
+[spawner-3] [INFO] [1758457659.585726218] [spawner_joint_trajectory_controller]: waiting for service /controller_manager/list_controllers to become available...
+[ign gazebo-5] [Dbg] [gz.cc:161] Subscribing to [/gazebo/starting_world].
+[ign gazebo-5] [Dbg] [gz.cc:163] Waiting for a world to be set from the GUI...
+[ign gazebo-5] [Msg] Received world [/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/world/empty_with_ft.sdf] from the GUI.
+[ign gazebo-5] [Dbg] [gz.cc:167] Unsubscribing from [/gazebo/starting_world].
+[ign gazebo-5] [Msg] Ignition Gazebo Server v6.16.0
+[ign gazebo-5] [Msg] Loading SDF world file[/home/keehong/workspaces/ros-ur-gz-ruis/install/ur_simulation_gz/share/ur_simulation_gz/world/empty_with_ft.sdf].
+[ign gazebo-5] [Msg] Serving entity system service on [/entity/system/add]
+[ign gazebo-5] [Dbg] [Physics.cc:804] Loaded [ignition::physics::dartsim::Plugin] from library [/usr/lib/x86_64-linux-gnu/ign-physics-5/engine-plugins/libignition-physics-dartsim-plugin.so]
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [gz::sim::systems::Physics] for entity [1]
+[ign gazebo-5] [Msg] Create service on [/world/empty/create]
+[ign gazebo-5] [Msg] Remove service on [/world/empty/remove]
+[ign gazebo-5] [Msg] Pose service on [/world/empty/set_pose]
+[ign gazebo-5] [Msg] Pose service on [/world/empty/set_pose_vector]
+[ign gazebo-5] [Msg] Light configuration service on [/world/empty/light_config]
+[ign gazebo-5] [Msg] Physics service on [/world/empty/set_physics]
+[ign gazebo-5] [Msg] SphericalCoordinates service on [/world/empty/set_spherical_coordinates]
+[ign gazebo-5] [Msg] Enable collision service on [/world/empty/enable_collision]
+[ign gazebo-5] [Msg] Disable collision service on [/world/empty/disable_collision]
+[ign gazebo-5] [Msg] Material service on [/world/empty/visual_config]
+[ign gazebo-5] [Msg] Material service on [/world/empty/wheel_slip]
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [gz::sim::systems::UserCommands] for entity [1]
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [gz::sim::systems::SceneBroadcaster] for entity [1]
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [gz::sim::systems::Contact] for entity [1]
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [ignition::gazebo::systems::ForceTorque] for entity [1]
+[ign gazebo-5] [Dbg] [Sensors.cc:506] Configuring Sensors system
+[ign gazebo-5] [Dbg] [Sensors.cc:431] SensorsPrivate::Run
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [ignition::gazebo::systems::Sensors] for entity [1]
+[ign gazebo-5] [Dbg] [Sensors.cc:411] SensorsPrivate::RenderThread started
+[ign gazebo-5] [Dbg] [Sensors.cc:258] Waiting for init
+[ign gazebo-5] [Msg] Loaded level [3]
+[ign gazebo-5] [Msg] Serving world controls on [/world/empty/control], [/world/empty/control/state] and [/world/empty/playback/control]
+[create-4] [INFO] [1758457659.801038656] [ros_gz_sim]: Requested creation of entity.
+[create-4] [INFO] [1758457659.801082393] [ros_gz_sim]: OK creation of entity.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] qrc:/qml/StyleDialog.qml:112:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] qrc:/qml/StyleDialog.qml:105:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] qrc:/qml/StyleDialog.qml:98:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] qrc:qml/Main.qml:102:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] qrc:/qml/PluginMenu.qml:27:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[INFO] [create-4]: process has finished cleanly [pid 14354]
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/Gazebo/GazeboDrawer.qml:242:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:57:5: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ERROR] [rviz2-8]: process has died [pid 14363, exit code -6, cmd '/opt/ros/humble/lib/rviz2/rviz2 -d /opt/ros/humble/share/ur_moveit_config/rviz/moveit.rviz --ros-args -r __node:=rviz2 --params-file /tmp/launch_params_ekqrpvcj --params-file /opt/ros/humble/share/ur_moveit_config/config/kinematics.yaml --params-file /tmp/launch_params_5buye_lp --params-file /opt/ros/humble/share/ur_moveit_config/config/joint_limits.yaml --params-file /tmp/launch_params_b4hv5fg3'].
+[ERROR] [trajectory_smoother_node-9]: process has died [pid 14365, exit code -6, cmd '/home/keehong/workspaces/ros-ur-gz-ruis/install/trajectory_smoother_service/lib/trajectory_smoother_service/trajectory_smoother_node --ros-args -r __node:=trajectory_smoother --params-file /home/keehong/workspaces/ros-ur-gz-ruis/install/trajectory_smoother_service/share/trajectory_smoother_service/config/smoother_parameters.yaml --params-file /tmp/launch_params_6v994f7m --params-file /opt/ros/humble/share/ur_moveit_config/config/kinematics.yaml --params-file /opt/ros/humble/share/ur_moveit_config/config/controllers.yaml --params-file /tmp/launch_params_av57b0zb'].
+[ign gazebo-5] [Msg] Serving GUI information on [[Msg] Ignition Gazebo GUI v6.16.0
+[ign gazebo-5] [Dbg] [Gui.cc:253] Waiting for subscribers to [/gazebo/starting_world]...
+[ign gazebo-5] [Dbg] [Application.cc:92] Initializing application.
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:555] Create main window
+[ign gazebo-5] [GUI] [Dbg] [PathManager.cc:66] Requesting resource paths through [/gazebo/resource_paths/get]
+[ign gazebo-5] [GUI] [Dbg] [Gui.cc:333] GUI requesting list of world names. The server may be busy downloading resources. Please be patient.
+[ign gazebo-5] [GUI] [Dbg] [PathManager.cc:55] Received resource paths.
+[ign gazebo-5] [GUI] [Dbg] [Gui.cc:391] Requesting GUI from [/world/empty/gui/info]...
+[ign gazebo-5] [GUI] [Dbg] [GuiRunner.cc:145] Requesting initial state from [/world/empty/state]...
+[ign gazebo-5] [GUI] [Msg] Loading config [/home/keehong/.ignition/gazebo/6/gui.config]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [MinimalScene]
+[ign gazebo-5] [GUI] [Msg] Added plugin [3D View] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [MinimalScene] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libMinimalScene.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [EntityContextMenuPlugin]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Entity Context Menu] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [EntityContextMenuPlugin] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libEntityContextMenuPlugin.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [GzSceneManager]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Scene Manager] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [GzSceneManager] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libGzSceneManager.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [InteractiveViewControl]
+[ign gazebo-5] [GUI] [Msg] Camera view controller topic advertised on [/gui/camera/view_control]
+[ign gazebo-5] [GUI] [Msg] Camera reference visual topic advertised on [/gui/camera/view_control/reference_visual]
+[ign gazebo-5] [GUI] [Msg] Camera view control sensitivity advertised on [/gui/camera/view_control/sensitivity]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Interactive view control] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [InteractiveViewControl] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libInteractiveViewControl.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [CameraTracking]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Camera tracking] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [CameraTracking] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libCameraTracking.so]
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/Spawn/Spawn.qml:32:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/WorldControl/WorldControl.qml:30:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [MarkerManager]
+[ign gazebo-5] [GUI] [Msg] Listening to stats on [/world/empty/stats]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Marker Manager] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [MarkerManager] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libMarkerManager.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [SelectEntities]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Select entities] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [SelectEntities] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libSelectEntities.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [Spawn]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Spawn] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [Spawn] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libSpawn.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [VisualizationCapabilities]
+[ign gazebo-5] [GUI] [Msg] View as transparent service on [/gui/view/transparent]
+[ign gazebo-5] [GUI] [Msg] View as wireframes service on [/gui/view/wireframes]
+[ign gazebo-5] [GUI] [Msg] View center of mass service on [/gui/view/com]
+[ign gazebo-5] [GUI] [Msg] View inertia service on [/gui/view/inertia]
+[ign gazebo-5] [GUI] [Msg] View collisions service on [/gui/view/collisions]
+[ign gazebo-5] [GUI] [Msg] View joints service on [/gui/view/joints]
+[ign gazebo-5] [GUI] [Msg] View frames service on [/gui/view/frames]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Visualization capabilities] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [VisualizationCapabilities] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libVisualizationCapabilities.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [WorldControl]
+[ign gazebo-5] [GUI] [Msg] Using world control service [/world/empty/control]
+[ign gazebo-5] [GUI] [Msg] Listening to stats on [/world/empty/stats]
+[ign gazebo-5] [GUI] [Dbg] [WorldControl.cc:246] Using an event to share WorldControl msgs with the server
+[ign gazebo-5] [GUI] [Msg] Added plugin [World control] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [WorldControl] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libWorldControl.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [WorldStats]
+[ign gazebo-5] [GUI] [Msg] Listening to stats on [/world/empty/stats]
+[ign gazebo-5] [GUI] [Msg] Added plugin [World stats] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [WorldStats] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libWorldStats.so]
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/TransformControl/TransformControl.qml:104:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/TransformControl/TransformControl.qml:99:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/TransformControl/TransformControl.qml:94:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/TransformControl/TransformControl.qml:89:3: QML Connections: Implicitly defined onFoo properties in Connections are deprecated. Use this syntax instead: function onFoo(<arguments>) { ... }
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/ComponentInspector/ComponentInspector.qml:251:3: QML Dialog: Binding loop detected for property "implicitHeight"
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityTree/EntityTree.qml:148:7: QML ToolButton: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityTree/EntityTree.qml:148:7: QML ToolButton: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/WorldStats/WorldStats.qml:53:3: QML RowLayout: Binding loop detected for property "x"
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:52:3: QML RenderWindowOverlay: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Wrn] [Application.cc:797] [QT] file::/EntityContextMenuPlugin/EntityContextMenuPlugin.qml:67:3: QML EntityContextMenu: Detected anchors on an item that is managed by a layout. This is undefined behavior; use Layout.alignment instead.
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [Shapes]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Shapes] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [Shapes] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libShapes.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [Lights]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Lights] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [Lights] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libLights.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [TransformControl]
+[ign gazebo-5] [GUI] [Dbg] [TransformControl.cc:222] Legacy mode is disabled; this plugin must be used with MinimalScene.
+[ign gazebo-5] [GUI] [Msg] Added plugin [Transform control] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [TransformControl] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libTransformControl.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [Screenshot]
+[ign gazebo-5] [GUI] [Msg] Screenshot service on [/gui/screenshot]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Screenshot] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [Screenshot] from path [/usr/lib/x86_64-linux-gnu/ign-gui-6/plugins/libScreenshot.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [CopyPaste]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Copy/Paste] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [CopyPaste] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libCopyPaste.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [ComponentInspector]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Component inspector] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [ComponentInspector] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libComponentInspector.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:426] Loading plugin [EntityTree]
+[ign gazebo-5] [GUI] [Msg] Added plugin [Entity tree] to main window
+[ign gazebo-5] [GUI] [Msg] Loaded plugin [EntityTree] from path [/usr/lib/x86_64-linux-gnu/ign-gazebo-6/plugins/gui/libEntityTree.so]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:296] Loading window config
+[ign gazebo-5] [GUI] [Msg] Using server control service [/server_control]
+[ign gazebo-5] [GUI] [Dbg] [Application.cc:569] Applying config
+[ign gazebo-5] [GUI] [Msg] Loading plugin [ignition-rendering-ogre2]
+[ign gazebo-5] [GUI] [Dbg] [MinimalScene.cc:602] Create scene [scene]
+[ign gazebo-5] [GUI] [Msg] Loading plugin [ignition-rendering-ogre2]
+[ERROR] [move_group-7]: process has died [pid 14361, exit code -6, cmd '/opt/ros/humble/lib/moveit_ros_move_group/move_group --ros-args --params-file /tmp/launch_params_4f0ixtjf --params-file /opt/ros/humble/share/ur_moveit_config/config/kinematics.yaml --params-file /tmp/launch_params_45lfzsy5 --params-file /opt/ros/humble/share/ur_moveit_config/config/ompl_planning.yaml --params-file /opt/ros/humble/share/ur_moveit_config/config/controllers.yaml --params-file /opt/ros/humble/share/ur_moveit_config/config/joint_limits.yaml --params-file /tmp/launch_params_py1dvla8'].
+[ign gazebo-5] [INFO] [1758457661.500724216] [GazeboSimROS2ControlPlugin]: robot_param_node is robot_state_publisher
+[ign gazebo-5] [INFO] [1758457661.500760479] [GazeboSimROS2ControlPlugin]: robot_param_node is robot_description
+[ign gazebo-5] [ERROR] [1758457662.053608170] [gz_ros2_control]: robot_state_publisher service not available, waiting again...
+[ign gazebo-5] [INFO] [1758457662.525195962] [gz_ros2_control]: connected to service!! robot_state_publisher asking for robot_description
+[ign gazebo-5] [INFO] [1758457662.528166103] [gz_ros2_control]: Received URDF from param server
+[ign gazebo-5] [INFO] [1758457662.536890514] [gz_ros2_control]: [gz_ros2_control] Fixed joint [base_joint] (Entity=32)] is skipped
+[ign gazebo-5] [INFO] [1758457662.554824979] [gz_ros2_control]: The position_proportional_gain has been set to: 0.1
+[ign gazebo-5] [INFO] [1758457662.555078102] [gz_ros2_control]: Loading joint: shoulder_pan_joint
+[ign gazebo-5] [INFO] [1758457662.555171583] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.555251316] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.555329914] [gz_ros2_control]: found initial value: 0.000000
+[ign gazebo-5] [INFO] [1758457662.555425619] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.555480718] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.555531287] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.555565600] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.555645234] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.555744473] [gz_ros2_control]: Loading joint: shoulder_lift_joint
+[ign gazebo-5] [INFO] [1758457662.555812582] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.555853574] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.555897059] [gz_ros2_control]: found initial value: -1.570000
+[ign gazebo-5] [INFO] [1758457662.555974146] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.556043911] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.556102911] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.556167400] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.556276158] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.556459645] [gz_ros2_control]: Loading joint: elbow_joint
+[ign gazebo-5] [INFO] [1758457662.556574114] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.556643831] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.556687904] [gz_ros2_control]: found initial value: 0.000000
+[ign gazebo-5] [INFO] [1758457662.556736788] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.556774536] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.556837935] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.556881120] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.556953713] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.557047837] [gz_ros2_control]: Loading joint: wrist_1_joint
+[ign gazebo-5] [INFO] [1758457662.557115709] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.557158641] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.557201485] [gz_ros2_control]: found initial value: -1.570000
+[ign gazebo-5] [INFO] [1758457662.557251364] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.557316763] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.557412016] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.557477254] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.557557284] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.557655500] [gz_ros2_control]: Loading joint: wrist_2_joint
+[ign gazebo-5] [INFO] [1758457662.557717471] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.557764016] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.557810870] [gz_ros2_control]: found initial value: 0.000000
+[ign gazebo-5] [INFO] [1758457662.557856995] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.557895386] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.557938110] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.557998868] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.558124476] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.558225221] [gz_ros2_control]: Loading joint: wrist_3_joint
+[ign gazebo-5] [INFO] [1758457662.558289723] [gz_ros2_control]: State:
+[ign gazebo-5] [INFO] [1758457662.558329454] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.558367144] [gz_ros2_control]: found initial value: 0.000000
+[ign gazebo-5] [INFO] [1758457662.558474212] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.558560417] [gz_ros2_control]: effort
+[ign gazebo-5] [INFO] [1758457662.558637169] [gz_ros2_control]: Command:
+[ign gazebo-5] [INFO] [1758457662.558699100] [gz_ros2_control]: position
+[ign gazebo-5] [INFO] [1758457662.558780749] [gz_ros2_control]: velocity
+[ign gazebo-5] [INFO] [1758457662.559119480] [resource_manager]: Initialize hardware 'ur'
+[ign gazebo-5] [WARN] [1758457662.559469928] [gz_ros2_control]: The ign_ros2_control plugin got renamed to gz_ros2_control.
+[ign gazebo-5] Update the <ros2_control> tag and gazebo plugin to
+[ign gazebo-5] <hardware>
+[ign gazebo-5] <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+[ign gazebo-5] </hardware>
+[ign gazebo-5] <gazebo>
+[ign gazebo-5] <plugin filename="gz_ros2_control-system"name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+[ign gazebo-5] ...
+[ign gazebo-5] </plugin>
+[ign gazebo-5] </gazebo>
+[ign gazebo-5] [INFO] [1758457662.559765522] [resource_manager]: Successful initialization of hardware 'ur'
+[ign gazebo-5] [INFO] [1758457662.560055965] [resource_manager]: 'configure' hardware 'ur'
+[ign gazebo-5] [INFO] [1758457662.560098604] [gz_ros2_control]: System Successfully configured!
+[ign gazebo-5] [INFO] [1758457662.560198510] [resource_manager]: Successful 'configure' of hardware 'ur'
+[ign gazebo-5] [INFO] [1758457662.560277840] [resource_manager]: 'activate' hardware 'ur'
+[ign gazebo-5] [INFO] [1758457662.560334107] [resource_manager]: Successful 'activate' of hardware 'ur'
+[ign gazebo-5] [INFO] [1758457662.560421457] [gz_ros2_control]: Loading controller_manager
+[ign gazebo-5] [Wrn] [Component.hh:144] Trying to serialize component with data type [N3sdf3v125WorldE], which doesn't have operator<<. Component will not be serialized.
+[ign gazebo-5] [GUI] [Dbg] [TransformControl.cc:531] TransformContro[0m/world/empty/gui/info]
+[ign gazebo-5] [Msg] World [empty] initialized with [1ms] physics profile.
+[ign gazebo-5] [Msg] Serving world SDF generation service on [/world/empty/generate_world_sdf]
+[ign gazebo-5] [Msg] Serving world names on [/gazebo/worlds]
+[ign gazebo-5] [Msg] Resource path add service on [/gazebo/resource_paths/add].
+[ign gazebo-5] [Msg] Resource path get service on [/gazebo/resource_paths/get].
+[ign gazebo-5] [Msg] Resource path resolve service on [/gazebo/resource_paths/resolve].
+[ign gazebo-5] [Msg] Resource paths published on [/gazebo/resource_paths].
+[ign gazebo-5] [Msg] Server control service on [/server_control].
+[ign gazebo-5] [Msg] Found no publishers on /stats, adding root stats topic
+[ign gazebo-5] [Msg] Found no publishers on /clock, adding root clock topic
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:496] Creating PostUpdate worker threads: 5
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:507] Creating postupdate worker thread (0)
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:507] Creating postupdate worker thread (1)
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:507] Creating postupdate worker thread (2)
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:507] Creating postupdate worker thread (3)
+[ign gazebo-5] [Dbg] [SystemManager.cc:70] Loaded system [ign_ros2_control::IgnitionROS2ControlPlugin] for entity [10]
+[ign gazebo-5] [Dbg] [UserCommands.cc:1303] Created entity [10] named [ur]
+[ign gazebo-5] [Msg] Serving scene information on [/world/empty/scene/info]
+[ign gazebo-5] [Msg] Serving graph information on [/world/empty/scene/graph]
+[ign gazebo-5] [Msg] Serving full state on [/world/empty/state]
+[ign gazebo-5] [Msg] Serving full state (async) on [/world/empty/state_async]
+[ign gazebo-5] [Msg] Publishing scene information on [/world/empty/scene/info]
+[ign gazebo-5] [Msg] Publishing entity deletions on [/world/empty/scene/deletion]
+[ign gazebo-5] [Msg] Publishing state changes on [/world/empty/state]
+[ign gazebo-5] [Msg] Publishing pose messages on [/world/empty/pose/info]
+[ign gazebo-5] [Msg] Publishing dynamic pose messages on [/world/empty/dynamic_pose/info]
+[ign gazebo-5] [Dbg] [EntityComponentManager.cc:1623] Updated state thread iterators: 8 threads processing around 5 entities each.
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:523] Exiting postupdate worker thread ([Dbg] [SimulationRunner.cc:523] Exiting postupdate worker thread (1)
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:523] Exiting postupdate worker thread (3)
+[ign gazebo-5] Exiting postupdate worker thread (0)
+[ign gazebo-5] [Dbg] [SimulationRunner.cc:523] Exiting postupdate worker thread (2)
+[ign gazebo-5] [WARN] [1758457662.697793468] [gz_ros2_control]: Desired controller update period (0.002 s) is slower than the gazebo simulation period (0.001 s).
+[ign gazebo-5] [GUI] [Wrn] [Component.hh:189] Trying to deserialize component with data type [N3sdf3v125WorldE], which doesn't have operator>>. Component will not be deserialized.
+[ign gazebo-5] [INFO] [1758457662.796675669] [controller_manager]: Loading controller 'joint_trajectory_controller'
+[ign gazebo-5] [WARN] [1758457662.831740000] [joint_trajectory_controller]: [Deprecated]: "allow_nonzero_velocity_at_trajectory_end" is set to true. The default behavior will change to false.
+[ign gazebo-5] [INFO] [1758457662.837749114] [controller_manager]: Configuring controller 'joint_trajectory_controller'
+[ign gazebo-5] [INFO] [1758457662.838357743] [joint_trajectory_controller]: No specific joint names are used for command interfaces. Using 'joints' parameter.
+[ign gazebo-5] [INFO] [1758457662.838431229] [joint_trajectory_controller]: Command interfaces are [position] and state interfaces are [position velocity].
+[ign gazebo-5] [INFO] [1758457662.838478184] [joint_trajectory_controller]: Using 'splines' interpolation method.
+[ign gazebo-5] [INFO] [1758457662.842690782] [joint_trajectory_controller]: Controller state will be published at 100.00 Hz.
+[ign gazebo-5] [INFO] [1758457662.850236361] [joint_trajectory_controller]: Action status changes will be monitored at 20.00 Hz.
+[ign gazebo-5] [INFO] [1758457662.865290800] [controller_manager]: Loading controller 'joint_state_broadcaster'
+[spawner-3] [WARN] [1758457662.870191211] [spawner_joint_trajectory_controller]: Controller already loaded, skipping load_controller
+[ign gazebo-5] [INFO] [1758457662.901026409] [controller_manager]: Loading controller 'joint_state_broadcaster'
+[ign gazebo-5] [ERROR] [1758457662.901128195] [controller_manager]: A controller named 'joint_state_broadcaster' was already loaded inside the controller manager
+[ign gazebo-5] [INFO] [1758457662.901264697] [controller_manager]: Configuring controller 'joint_trajectory_controller'
+[ign gazebo-5] [INFO] [1758457662.902311983] [joint_trajectory_controller]: No specific joint names are used for command interfaces. Using 'joints' parameter.
+[ign gazebo-5] [INFO] [1758457662.902444399] [joint_trajectory_controller]: Command interfaces are [position] and state interfaces are [position velocity].
+[ign gazebo-5] [INFO] [1758457662.902511517] [joint_trajectory_controller]: Using 'splines' interpolation method.
+[ign gazebo-5] [INFO] [1758457662.909446366] [joint_trajectory_controller]: Controller state will be published at 100.00 Hz.
+[spawner-2] [FATAL] [1758457662.909724352] [spawner_joint_state_broadcaster]: Failed loading controller joint_state_broadcaster
+[ign gazebo-5] [INFO] [1758457662.931310240] [joint_trajectory_controller]: Action status changes will be monitored at 20.00 Hz.
+[ign gazebo-5] [INFO] [1758457662.973097299] [controller_manager]: Configuring controller 'joint_state_broadcaster'
+[ign gazebo-5] [INFO] [1758457662.973268553] [joint_state_broadcaster]: 'joints' or 'interfaces' parameter is empty. All available state interfaces will be published
+[ign gazebo-5] [WARN] [1758457662.987949924] [controller_manager]: Controller with name 'joint_trajectory_controller' is not inactive so its following controllers do not have to be checked, because it cannot be activated.
+[ign gazebo-5] [WARN] [1758457662.988091961] [controller_manager]: Could not activate controller with name 'joint_trajectory_controller'. Check above warnings for more details. Check the state of the controllers and their required interfaces using ros2 control list_controllers -v CLI to get more information.
+[ign gazebo-5] [ERROR] [1758457662.988116601] [controller_manager]: Aborting, no controller is switched! (::STRICT switch)
+[spawner-3] [ERROR] [1758457662.991672322] [spawner_joint_trajectory_controller]: Failed to activate controller : joint_trajectory_controller
+[ERROR] [spawner-2]: process has died [pid 14350, exit code 1, cmd '/opt/ros/humble/lib/controller_manager/spawner joint_state_broadcaster --controller-manager /controller_manager --ros-args'].
+[ERROR] [spawner-3]: process has died [pid 14352, exit code 1, cmd '/opt/ros/humble/lib/controller_manager/spawner joint_trajectory_controller -c /controller_manager --ros-args'].
+
+
+what I eventually want to do is grep what you provide to run the smoother node and plug it into my company framework. I was hoping it be inserting one function call or one service request from the existing planner. in order to do that, instead of building a one long launch file, assume the ur_sim_control.launch.py has been executed and then make the 2nd launch file to follow. I expect the 2nd has to include some moveit configurations and start smoother trajectory node. regarding a successful method to start moveit nodes can be found in ur_sim_moveit.launch.py. So, the test scenario should be like 1. launch ur_simulation_gz ur_sim_control.launch.py. 2. launch smoother_trajectory_service smoother_trajectory_service_with_moveit.launch.py. 3. then run a test python script like python3 test_smoother_service.py which assumes some waypoints and ask the smoother service to smooth it then publish a trajectory topic. (see ompl_integration_example.py for your reference)
+
+
+Split Launch Flow
+
+Added trajectory_smoother_service/launch/smoother_with_moveit.launch.py which piggybacks on ur_moveit_config/ur_moveit.launch.py and starts the smoother node once the base sim is already up. Parameters (UR type, MoveIt package/file, joint-limits yaml, RViz/Servo toggles, smoother params) remain configurable, with use_sim_time wired through to all nodes.
+The smoother node now only receives its own YAML (defaults to share/trajectory_smoother_service/config/smoother_parameters.yaml) plus use_sim_time, avoiding the previous parameter-file parsing crashes. MoveIt still pulls its kinematics/planning/controller settings via dictionaries, so no --params-file errors.
+How to exercise it
+
+ros2 launch ur_simulation_gz ur_sim_control.launch.py (bring up Gazebo + controllers).
+In a new terminal: ros2 launch trajectory_smoother_service smoother_with_moveit.launch.py launch_rviz:=true launch_servo:=false.
+Once /smooth_trajectory appears, run python3 src/trajectory_smoother_service/scripts/test_smoother_client.py (or adapt ompl_integration_example.py) to send sample waypoints and watch /smooth_trajectory.
+Let me know if you want the single combined launch restored or further automation (e.g., ROS 2 launch tests or example integration snippets).
+
+python3 src/trajectory_smoother_service/scripts/test_smoother_client.py
+[INFO] [1758458641.178223759] [test_smoother_client]: Waiting for trajectory smoother service...
+[INFO] [1758458642.180598704] [test_smoother_client]: Waiting for trajectory smoother service...
+[INFO] [1758458643.182959352] [test_smoother_client]: Calling smooth_trajectory service...
+[INFO] [1758458643.343617737] [test_smoother_client]: SUCCESS: CHOMP optimisation success
+[INFO] [1758458643.344219605] [test_smoother_client]: Received trajectory with 36 points
+[INFO] [1758458643.344797454] [test_smoother_client]: Point 0: positions=array('d', [0.0, -1.57, 1.57, -1.57, -1.57, 0.0]), time=0s
+[INFO] [1758458643.345220484] [test_smoother_client]: Point 1: positions=array('d', [0.00499999999999999, -1.5663, 1.5663, -1.5663, -1.5663, 0.00499999999999999]), time=0s
+[INFO] [1758458643.345656007] [test_smoother_client]: Point 2: positions=array('d', [0.01999999999999993, -1.5552, 1.5552, -1.5552, -1.5552, 0.01999999999999993]), time=0s
+[INFO] [1758458643.346115146] [test_smoother_client]: Point 3: positions=array('d', [0.04499999999999983, -1.5366999999999997, 1.5366999999999997, -1.5366999999999997, -1.5366999999999997, 0.04499999999999983]), time=0s
+[INFO] [1758458643.346590603] [test_smoother_client]: Point 4: positions=array('d', [0.07631561708161147, -1.513526443359607, 1.513526443359607, -1.513526443359607, -1.513526443359607, 0.07631561708161147]), time=0s
+[INFO] [1758458643.347036993] [test_smoother_client]: Point 5: positions=array('d', [0.10773154361750949, -1.490278657723042, 1.490278657723042, -1.490278657723042, -1.490278657723042, 0.10773154361750949]), time=0s
+[INFO] [1758458643.347548940] [test_smoother_client]: Point 6: positions=array('d', [0.13914747015340825, -1.4670308720864766, 1.4670308720864766, -1.4670308720864766, -1.4670308720864766, 0.13914747015340825]), time=0s
+[INFO] [1758458643.347996744] [test_smoother_client]: Point 7: positions=array('d', [0.17056339668930767, -1.4437830864499106, 1.4437830864499106, -1.4437830864499106, -1.4437830864499106, 0.17056339668930767]), time=0s
+[INFO] [1758458643.348624885] [test_smoother_client]: Point 8: positions=array('d', [0.20197932322520706, -1.420535300813345, 1.420535300813345, -1.420535300813345, -1.420535300813345, 0.20197932322520706]), time=0s
+[INFO] [1758458643.349249333] [test_smoother_client]: Point 9: positions=array('d', [0.23339524976110645, -1.397287515176779, 1.397287515176779, -1.397287515176779, -1.397287515176779, 0.23339524976110645]), time=0s
+[INFO] [1758458643.349922845] [test_smoother_client]: Point 10: positions=array('d', [0.2648111763001708, -1.374027091987414, 1.374027091987414, -1.374027091987414, -1.374027091987414, 0.2648111763001708]), time=1s
+[INFO] [1758458643.351055009] [test_smoother_client]: Point 11: positions=array('d', [0.29622710284286136, -1.3506685221637555, 1.3506685221637555, -1.3506685221637555, -1.3506685221637555, 0.29622710284286136]), time=1s
+[INFO] [1758458643.351731713] [test_smoother_client]: Point 12: positions=array('d', [0.3276430293856336, -1.3271950795613003, 1.3271950795613003, -1.3271950795613003, -1.3271950795613003, 0.3276430293856336]), time=1s
+[INFO] [1758458643.352366772] [test_smoother_client]: Point 13: positions=array('d', [0.35905895592849113, -1.30360586755583, 1.30360586755583, -1.30360586755583, -1.30360586755583, 0.35905895592849113]), time=1s
+[INFO] [1758458643.352815625] [test_smoother_client]: Point 14: positions=array('d', [0.3904748824714339, -1.2798999756757228, 1.2798999756757228, -1.2798999756757228, -1.2798999756757228, 0.3904748824714339]), time=1s
+[INFO] [1758458643.353399466] [test_smoother_client]: Point 15: positions=array('d', [0.42189080901446907, -1.2560764793020551, 1.2560764793020551, -1.2560764793020551, -1.2560764793020551, 0.42189080901446907]), time=1s
+[INFO] [1758458643.353795338] [test_smoother_client]: Point 16: positions=array('d', [0.4533067355576019, -1.232134439360233, 1.232134439360233, -1.232134439360233, -1.232134439360233, 0.4533067355576019]), time=1s
+[INFO] [1758458643.354323658] [test_smoother_client]: Point 17: positions=array('d', [0.48472266210084136, -1.2080729020028693, 1.2080729020028693, -1.2080729020028693, -1.2080729020028693, 0.48472266210084136]), time=1s
+[INFO] [1758458643.354821455] [test_smoother_client]: Point 18: positions=array('d', [0.5161385886441732, -1.18389089828361, 1.18389089828361, -1.18389089828361, -1.18389089828361, 0.5161385886441732]), time=1s
+[INFO] [1758458643.355439017] [test_smoother_client]: Point 19: positions=array('d', [0.5475545151875973, -1.159587443821553, 1.159587443821553, -1.159587443821553, -1.159587443821553, 0.5475545151875973]), time=1s
+[INFO] [1758458643.356070455] [test_smoother_client]: Point 20: positions=array('d', [0.5789704417311192, -1.1351615384559688, 1.1351615384559688, -1.1351615384559688, -1.1351615384559688, 0.5789704417311192]), time=2s
+[INFO] [1758458643.356658405] [test_smoother_client]: Point 21: positions=array('d', [0.6103863682747441, -1.110612165890971, 1.110612165890971, -1.110612165890971, -1.110612165890971, 0.6103863682747441]), time=2s
+[INFO] [1758458643.357086700] [test_smoother_client]: Point 22: positions=array('d', [0.6418022948184756, -1.0859382933297494, 1.0859382933297494, -1.0859382933297494, -1.0859382933297494, 0.6418022948184756]), time=2s
+[INFO] [1758458643.357714402] [test_smoother_client]: Point 23: positions=array('d', [0.6732182213623279, -1.061138871098012, 1.061138871098012, -1.061138871098012, -1.061138871098012, 0.6732182213623279]), time=2s
+[INFO] [1758458643.358171788] [test_smoother_client]: Point 24: positions=array('d', [0.7046341479062885, -1.0362128322562585, 1.0362128322562585, -1.0362128322562585, -1.0362128322562585, 0.7046341479062885]), time=2s
+[INFO] [1758458643.358813038] [test_smoother_client]: Point 25: positions=array('d', [0.7360500744503504, -1.0111590922003968, 1.0111590922003968, -1.0111590922003968, -1.0111590922003968, 0.7360500744503504]), time=2s
+[INFO] [1758458643.359534345] [test_smoother_client]: Point 26: positions=array('d', [0.7674660009871808, -0.9860271992102563, 0.9860271992102563, -0.9860271992102563, -0.9860271992102563, 0.7674660009871808]), time=2s
+[INFO] [1758458643.360211058] [test_smoother_client]: Point 27: positions=array('d', [0.7988819275230823, -0.9608944579815348, 0.9608944579815348, -0.9608944579815348, -0.9608944579815348, 0.7988819275230823]), time=2s
+[INFO] [1758458643.360814403] [test_smoother_client]: Point 28: positions=array('d', [0.8302978540589839, -0.9357617167528134, 0.9357617167528134, -0.9357617167528134, -0.9357617167528134, 0.8302978540589839]), time=2s
+[INFO] [1758458643.361446991] [test_smoother_client]: Point 29: positions=array('d', [0.8617137805948856, -0.9106289755240919, 0.9106289755240919, -0.9106289755240919, -0.9106289755240919, 0.8617137805948856]), time=2s
+[INFO] [1758458643.361853939] [test_smoother_client]: Point 30: positions=array('d', [0.893129707130787, -0.8854962342953707, 0.8854962342953707, -0.8854962342953707, -0.8854962342953707, 0.893129707130787]), time=3s
+[INFO] [1758458643.362229065] [test_smoother_client]: Point 31: positions=array('d', [0.9245456336666886, -0.8603634930666495, 0.8603634930666495, -0.8603634930666495, -0.8603634930666495, 0.9245456336666886]), time=3s
+[INFO] [1758458643.362729155] [test_smoother_client]: Point 32: positions=array('d', [0.9558187395521938, -0.8353450083582452, 0.8353450083582452, -0.8353450083582452, -0.8353450083582452, 0.9558187395521938]), time=3s
+[INFO] [1758458643.363109186] [test_smoother_client]: Point 33: positions=array('d', [0.9805445735851713, -0.815564341131863, 0.815564341131863, -0.815564341131863, -0.815564341131863, 0.9805445735851713]), time=3s
+[INFO] [1758458643.363563947] [test_smoother_client]: Point 34: positions=array('d', [0.9952704076181489, -0.803783673905481, 0.803783673905481, -0.803783673905481, -0.803783673905481, 0.9952704076181489]), time=3s
+[INFO] [1758458643.363972135] [test_smoother_client]: Point 35: positions=array('d', [0.9999999999999999, -0.8, 0.8, -0.8, -0.8, 0.9999999999999999]), time=3s
+
+What does this mean?
+
+
+Looks like the pipeline is doing exactly what we wanted:
+
+SUCCESS: CHOMP optimisation success means the smoother took your raw three-waypoint path, expanded it into 36 intermediate waypoints, and the CHOMP optimizer produced a collision-free, smoothed joint trajectory.
+The points you see are the interpolated joint positions along that smoothed path. They start at your first waypoint and move gradually toward the final waypoint; you can see the gradual ramping of each joint.
+time=0s for the early points is just because your log prints time_from_start.sec only. Those samples are spaced in fractions of a second (< 1 s), so their whole seconds field is 0. To see the actual timing, also print time_from_start.nanosec (or convert to a float).
+Later points show time=1s, 2s, 3s, etc., which is the re-parameterised timing after the time-optimal parameterisation (with your 0.1 velocity/acceleration scalers).
+In short: the smoother service is live, CHOMP is smoothing, TOTG is re-timing, and you’re getting a dense, time-parameterised trajectory ready for a controller.
+
+wow you nailed it. to make sure modify the python script to visualize how it smoothened the waypoints.
+
+
+Plotting Added
+
+test_smoother_client.py:6 now tries to import matplotlib so it can visualise the service output (logs stay intact if the import fails).
+After a successful service call we convert time_from_start to seconds, log each waypoint with full timing, and collect joint series.
+When matplotlib is present we overlay the three original waypoints and the full smoothed trajectory for every joint on a single plot, so you can see how CHOMP filled in the path.
+Usage
+Run the client as before:
+
+python3 src/trajectory_smoother_service/scripts/test_smoother_client.py
+If matplotlib is installed, a window pops up showing raw (markers) vs. smoothed (continuous) joint profiles. If you’re in headless mode or missing the library you’ll get a warning and just the logs.
+
+also visualize the velocity profiles. does the reparametrizer provide its velocity and acceleration profiles? or do we have compute it from the positions?
+
+
+Updated test_smoother_client.py so you now get quick plots for joint positions, velocities, and (when available) accelerations:
+
+We gather time_from_start in seconds, along with the smoothed joint positions.
+If MoveIt’s time-parameterization populated velocities/accelerations (it normally does), those are plotted directly. If they’re missing and NumPy is available, we approximate them numerically from the positions versus time.
+Plot 1 overlays each joint’s raw waypoints (dashed markers) against the smoothed curve. Plots 2 and 3 (when data exist) show the velocity and acceleration profiles respectively.
+All plots share consistent legends, grids, and tight layouts.
+So the re-parameterizer should give you velocities/accelerations out of the box; the script just falls back to derivatives when that data isn’t present.
+
+Run it exactly as before (python3 src/trajectory_smoother_service/scripts/test_smoother_client.py). If matplotlib (and optionally numpy) is installed you’ll see the figures.
+
+if the ompl output from the planner node i'm to plug this in has about 20 waypoints with 19 piecewise linear trajectories, and if each segment is also interpolated with 500 steps, that would be too many points for our current smoother? shoud I let the ompl not interpolate at all and output only those 20 waypoints?
+
+
+Not inherently “too many,” but handing CHOMP 20 segments × 500 samples (~10 k points) will explode compute time and memory for no real gain:
+
+CHOMP already reparameterizes the path internally; its cost evaluation scales linearly with the number of points, so a dense piecewise-linear input just slows the optimizer and can make it numerically stiff.
+The Time‑Optimal reparameterizer (and any downstream controller) also works harder with dense samples. For the feedforward velocity profile you want, a few dozen well-spaced waypoints is plenty; TOTG will inject the timing you need.
+Best practice: let OMPL output only the sparse path (original 20 waypoints or maybe 2–3x that if you need obstacle clearance detail). If you must keep an internal interpolation, downsample to a few hundred points before calling smooth_trajectory. If later you find the smoother under-resolving curvature, bump the density gradually.
+
+So yes—turn off (or reduce) that 500-step interpolation in OMPL. The smoother is designed to take relatively coarse waypoints, add its own refinement, and then return a dense, time-parameterized trajectory.
+
+it also depends on how the ompl works and whether i have correct understanding. i was using BITstar algorithm I give 20 waypoints and then OMPL handles it one segment by one. In the end we interpolated and concatenated them. WHen I examine the resulting path it was simply the shortest joint space path from one point to the next. Perhaps if there was any collision on the path, would OMPL have broken it a few more paths to go around it?
+
+
+BIT* (and most OMPL planners) work a little differently from the “20 waypoints” mental model:
+
+You normally give OMPL only start and goal (plus state validity + cost). The planner explores the joint space, grows a graph, and returns a single collision‑free path—internally a sequence of states (waypoints). That sequence is what we see as a “piecewise linear” path after OMPL applies its own shortcutting.
+If it discovers collision along a straight line between two states, it inserts more states to route around the obstacle. So you get more than the straight-line blend when needed; the density reflects the planner’s resolution and the obstacle geometry.
+BIT* maintains a sparse tree of candidate paths, rewiring as it finds cheaper (shorter) options. Contrary to RRT-Connect, it can return a solution with relatively few states—just enough to capture the obstacle boundary. You almost never pre-feed it intermediate waypoints unless you’re biasing or constraining the search.
+The calc/interpolate step you mentioned is typically a post-processing convenience. Calling ompl::base::PathGeometric::interpolate(500) forces it to insert evenly spaced samples between the underlying waypoints. That’s useful for downstream plotting, but you don’t want to ship those 500-sample segments to CHOMP.
+CHOMP/TOTG are happy with the raw states returned by OMPL (dozens, not thousands). They can reparameterize and smooth. If you take BIT*’s output without interpolation, CHOMP still gets a path that bends around obstacles—the planner already ensured collision avoidance by introducing intermediate states.
+So: you don’t need to hand OMPL 20 intermediate waypoints. Just supply the start/end states, let BIT* produce the sparse collision-free path, skip the heavy interpolation, and pass that directly to the smoother. It will only have more waypoints when the planner genuinely needed them to snake around obstacles.
+
+that 20 waypoints are misunderstood. those are the points a user asks the robot to actually visit.
+
+
+Got it—those ~20 waypoints are the user’s required via points, not the planner’s internal samples.
+
+A few key points for integrating with the smoother:
+
+Feed the user waypoints directly. Give OMPL just the sequence of via states you must hit; don’t pre-interpolate the straight-line segments. The planner can either solve each segment individually (multi-stage planning) or plan once with path constraints to force those waypoints. Either way, pass that sparse sequence (20-ish points) to the smoother; CHOMP/TOTG don’t need the extra 500-sample interpolation.
+
+Collision handling. If any straight segment between two mandated waypoints crosses an obstacle, OMPL will need to insert additional states to steer around it (or you plan segment-by-segment). You can still pass the full sequence (mandatory + detour states) to the smoother—it scales fine with a few dozen points.
+
+“Must-hit” accuracy. Our CHOMP setup treats the incoming path as an initial guess and optimizes it; it can nudge waypoints slightly to improve cost/collision. If those user waypoints must be hit exactly, either:
+
+Run CHOMP on smaller sub-segments between consecutive mandatory points (holding endpoints fixed), or
+Use a cost/penalty formulation that locks specific states (e.g., by splitting the request and reusing the smoother for each consecutive pair).
+Performance. 20 waypoints is trivial; CHOMP sees that as 20 time steps and quickly converges. Even a few hundred points stays manageable.
+
+So: drop the dense interpolation, pass the actual user-specified waypoints (plus any extra states OMPL found for collision avoidance) to smooth_trajectory, and optionally segment runs if you need the optimiser to keep certain points exact.
+
+FYI, the visit states doesn't require to be very precise. so missing them slightly to maintain curvature is fine. So, from OMPL, how can we obtain the original way points + added states ? just by setting interpolation steps to zero?
+
+
+Exactly—if you skip the PathGeometric::interpolate() call (or pass 0/1 when you’re exporting), you’ll keep the original sequence:
+
+OMPL stores the raw solver output in path.getStates(). That list already includes any extra states the planner inserted to skirt obstacles.
+Calling path.interpolate(n) is what densifies each segment uniformly. Just don’t call it (or call interpolate(0)/interpolate(1)), and you’ll preserve the solver’s waypoints only.
+If you’re using MoveIt, watch for its internal post-processing: simplifyTrajectory() keeps the same number or fewer states, but interpolate() (used by getTrajectoryMsg() if you request a high discretization) will add samples. So keep the sampling parameter at 0 or omit it before handing the path to the smoother.
+With that, you’ll get “original user via points + any obstacle-avoidance states” and nothing more—perfect for feeding into the smoother while letting CHOMP handle the curvature trade-off.
+
+i'll take this result so far and apply it to my main frame. do i just need the files in this directory or do I need to install some secret modules you 've installed?
+
+
+No hidden installs. Everything we touched lives inside the workspace and uses packages already shipped with ROS 2 Humble:
+
+Trajectory smoother package: source files plus the new launch/config scripts (trajectory_smoother_service).
+Launch wiring: the extra smoother_with_moveit.launch.py (and your edited ur_sim_control_moveit_smoother.launch.py, if you keep it).
+Dependencies: chomp_motion_planner, moveit_planners_chomp, moveit_ros_*—all part of the standard MoveIt binary install you’re already using.
+Optional plotting: the test client will try to import matplotlib and numpy; if they’re missing it just logs a warning. Install them only if you want the plots.
+So just copy the package/launch updates into your main repo, run colcon build, source the workspace, and you’re good—no extra secret modules required.
+
+i'll upload this package to my github. so, everything i need seem to be under trajectory_smoother_service. can you add a readme.md? What it does, what to be installed (explain moveit packages to install and how), how to build, (if need to run rosdep, put it there.) and how to launch, then how to test. Also how to integrate with existing OMPL planner node. (proivde a example omple planner node.py if helpful)
+
+
+README added at src/trajectory_smoother_service/README.md detailing requirements, build steps, launch/test instructions, and a minimal integration example for calling /smooth_trajectory from an OMPL-based planner. Let me know if you want more docs or diagrams.
+
+can i make a new repo from a terminal or do i have to visit the github.com to open the new repo?
+
+
+You can do it entirely from the terminal if you’d like. Two common options:
+
+GitHub CLI (gh): install gh and run gh auth login, then gh repo create <org-or-username>/<repo-name> with the flags you prefer (--public/--private, --source ., etc.). It will both create the repo on GitHub and optionally push your current directory.
+
+Git + manual API: you can curl GitHub’s REST API to create a repo, but that’s more cumbersome (requires a PAT and POST to https://api.github.com/user/repos). The web UI or gh are simpler.
+
+So you don’t have to visit github.com—the CLI covers the whole flow.
+
+src/trajectory_smoother_service$ gh repo create khngseo/trajectory_smoother_service --private --source .
+just like this to push the current directory?
+
+
+Yes, that’s the right idea—gh repo create can both create the GitHub repo and push your current directory. A typical one-liner looks like:
+
+gh repo create khngseo/trajectory_smoother_service --private --source . --remote origin --push
+--private (or --public) sets visibility.
+--source . tells gh to use the current folder.
+--remote origin names the new remote (default is origin anyway).
+--push triggers an initial push of your existing commits.
+Make sure you’ve committed the files (git status clean) before running it. After the command completes, your local repo will have the remote set and your current branch pushed to GitHub.
+
+$ git status
+현재 브랜치 main
+브랜치가 'origin/main'에 맞게 업데이트된 상태입니다.
+
+커밋하도록 정하지 않은 변경 사항:
+(무엇을 커밋할지 바꾸려면 "git add <파일>..."을 사용하십시오)
+(작업 디렉토리의 변경을 무시하려면 "git restore <file>..."을 사용하시오)
+수정함: ../ur_simulation_gz/ur_simulation_gz/CMakeLists.txt
+수정함: ../ur_simulation_gz/ur_simulation_gz/package.xml
+
+추적하지 않는 파일:
+(커밋할 사항에 포함하려면 "git add <파일>..."을 사용하십시오)
+./
+../ur_simulation_gz/ur_simulation_gz/launch/ur_sim_control_moveit_smoother.launch.py
+../ur_simulation_gz/ur_simulation_gz/launch/ur_sim_moveit_planner.launch.py
+../ur_simulation_gz/ur_simulation_gz/scripts/
+
+커밋할 변경 사항을 추가하지 않았습니다 ("git add" 및/또는 "git commit -a"를
+사용하십시오)
+
+So, what's going on? Is it because i started working on from a git workspace?
+
+
+Right—everything you changed lives inside this workspace’s single Git repo (ros-ur-gz-ruis). Git sees:
+
+Two tracked files already under version control (ur_simulation_gz/.../CMakeLists.txt and package.xml) with modifications.
+New files/directories (trajectory_smoother_service/…, the new launch scripts, etc.) that aren’t tracked yet.
+That’s exactly what you’d expect after editing and adding files. To push them somewhere, add them to this repo (or move them into a fresh one) and commit:
+
+git add src/trajectory_smoother_service \
+        src/ur_simulation_gz/ur_simulation_gz/launch/ur_sim_control_moveit_smoother.launch.py
+git add src/ur_simulation_gz/ur_simulation_gz/CMakeLists.txt \
+        src/ur_simulation_gz/ur_simulation_gz/package.xml
+git commit -m "Add trajectory smoother service and integration launch files"
+Then either push to this project’s remote or initialise a clean repo just for the smoother:
+
+cd src/trajectory_smoother_service
+git init
+git add .
+git commit -m "Initial commit"
+gh repo create khngseo/trajectory_smoother_service --private --source . --remote origin --push
+No issue arises from “starting in a git workspace”—it’s just the normal untracked/modified state until you stage & commit.
+
+if I did that, would it be found from 2 repos: ros-ur-gz-ruis and trajectory_smoother_service?
+
+
+Yes—if you git init inside src/trajectory_smoother_service and push that to GitHub, you’ll end up with two repos:
+
+The original ros-ur-gz-ruis that still tracks the whole workspace (including the smoother).
+A new trajectory_smoother_service repo containing just that package.
+The history of the smoother would live in both projects unless you remove it from one of them. That’s fine if you want to publish/incorporate it elsewhere—just be aware you’d need to keep the duplicate copies in sync manually or remove the package from the upstream repo to avoid confusion.
+
+i'd prefer let it live in one new repo.
+
+
+Got it. Easiest workflow:
+
+Export the package
+
+mkdir ~/trajectory_smoother_service
+cp -r src/trajectory_smoother_service/* ~/trajectory_smoother_service
+or use rsync/git archive.
+
+Make it the only repo
+
+cd ~/trajectory_smoother_service
+git init
+git add .
+git commit -m "Initial commit"
+gh repo create khngseo/trajectory_smoother_service --private --source . --remote origin --push
+(floor command: include --remote origin --push to add remote + push)
+
+Now GitHub has a repo with just that package. Inside your original workspace, you can either keep or delete src/trajectory_smoother_service depending on whether you want to maintain it there.
+
+on the second thought i'll let it live only in the oroginal repo with its siblings
+
+
+Glad we got the smoother service in place with CHOMP + TOTG and the plotting tools—it should plug cleanly into your main planner now. Everything lives in the existing ros-ur-gz-ruis repo, so just add/commit/push those files when you’re ready. Shout if you need help wiring it into the production environment or trimming parameters once you test on the UR5e.
+
+i'd like to revert ur_simulation_gz to match with origin main.
+
+
+All ur_simulation_gz changes are back to match origin/main—I restored the modified tracked files and removed the extra launch/scripts we added under that package. Your workspace now just shows the new trajectory_smoother_service/ directory as untracked.
+
+reverting shouldn't have affected the trajectory_smoother service
+
+
+Right, the revert only touched the tracked UR simulation files. The trajectory_smoother_service/ directory stayed untouched (it’s still untracked and holds all your work). Whenever you’re ready, just git add src/trajectory_smoother_service to record it.
+
+the smoother service checks for self collision as OMPL does?
+
+
+Yes—when CHOMP runs it evaluates cost terms against the same planning_scene::PlanningScene we built from the UR robot model. That scene has self‑collision geometry baked in, so every iterate CHOMP checks both for self-collision and for anything you’ve added to the scene. A few nuances:
+
+We allocate the hybrid collision detector (CollisionDetectorAllocatorHybrid), so CHOMP sees the full robot geometry and enforces self-collision avoidance just like OMPL would.
+If you use the smoother right after loading the URDF (as in the default config), the scene only contains the robot. It catches self-collisions out of the box; to avoid static/dynamic obstacles you must inject them into the planning scene the same way your planner does.
+When CHOMP converges we return the resulting trajectory and feed it through TOTG/IPTP. Those timing passes don’t change positions, so the collision status CHOMP validated still holds.
+If CHOMP fails to initialize or optimise we fall back to the input waypoints (with timing applied). In that case the trajectory is not rechecked—you’ll get back whatever you sent in. If you need stronger guarantees you can reject the service response when success is false and handle the fallback on the caller side.
+So, as long as the planning scene is kept in sync with the environment, the smoother’s CHOMP stage protects against self-collision just as OMPL does.
+
+I think the model description was found under ur_description / urdf / ur_macro.xacro or ur_urdf.xacro. do you have the same file in mind?
+
+
+Exactly—the smoother pulls the same UR model that the rest of the stack uses. In the provided launch flows:
+
+ur_sim_control.launch.py (and UR MoveIt setups) generate robot_description by running ur_description/urdf/ur_macro.xacro (invoked via ur.urdf.xacro, with macros). That parameter is published by robot_state_publisher.
+Our smoother’s RobotModelLoader reads the robot_description parameter off the ROS parameter server. So it ingests the identical URDF/Xacro your sim or real robot uses.
+As long as robot_state_publisher is publishing that model (or you provide the parameter explicitly), CHOMP sees the same joint limits, collision geometry, and link hierarchy as OMPL.
+If you ever swap to a custom Xacro (tooling, added links, etc.), just make sure the robot_description parameter reflects it and the smoother will pick it up automatically.
+
+how can i check the filepath that the ros2 is actually refering to now as the simulation is running?
+
+
+The running nodes only store the URDF XML, not the source path, but Xacro helpfully keeps a comment at the top. So you can inspect the robot_description parameter:
+
+ros2 param get /robot_state_publisher robot_description | head
+The first lines usually look like:
+
+<!-- =================================================================================== -->
+<!-- |    This document was autogenerated by xacro from /opt/ros/.../urdf/ur_macro.xacro -->
+That’s the exact file it expanded when the launch started. If you want the whole thing, redirect it:
+
+ros2 param get /robot_state_publisher robot_description > /tmp/robot.xml
+head /tmp/robot.xml
+So even though ROS doesn’t track the path separately, that comment shows the Xacro file currently in use.
+
+where can i check paramters for chomp if I wanted to tune some of them
+
+
+CHOMP gets its tuning knobs from the ROS parameters you feed the smoother node. In this package:
+
+trajectory_smoother_service/config/smoother_parameters.yaml lists every exposed setting (e.g. chomp.learning_rate, chomp.max_iterations, chomp.smoothness_cost_*, etc.). The node declares them with defaults at start-up.
+At runtime you can inspect/change them like any ROS param. Example:
+ros2 param list /trajectory_smoother
+ros2 param get  /trajectory_smoother chomp.learning_rate
+ros2 param set  /trajectory_smoother chomp.learning_rate 0.02
+(Make sure the node is running first.)
+If you launch with a different YAML, just point smoother_params_file at your custom file so the node uses your tuned values.
+Those parameters map directly onto MoveIt’s chomp::ChompParameters structure, so anything you see in MoveIt’s chomp_planning.yaml can be tweaked here the same way.
+
+can we also add an option to use stomp in place of chomp? to keep this project safe, ( i don't want us to mess with the current one with trying to import stomp) we should dig a new directory just by copying the current one. I just did. it's name is stomp_service.
+
+
+New STOMP Service Package
+
+Cloned the smoother into a standalone package stomp_service with its own build metadata and launch/config/docs (src/stomp_service/CMakeLists.txt, src/stomp_service/package.xml, src/stomp_service/README.md).
+Reworked the core node to drive MoveIt’s planning pipeline so you can swap planners by parameter (defaulting to stomp_moveit/StompPlanner, fallback to CHOMP or others if desired) while keeping the same service contract and TOTG post-processing (src/stomp_service/src/trajectory_smoother_node.cpp).
+Updated parameter YAML/launch/scripts to use the new namespace and expose planner tuning knobs (src/stomp_service/config/smoother_parameters.yaml, src/stomp_service/launch/*.py, src/stomp_service/scripts/*.py).
+Build & Launch
+
+colcon build --packages-select stomp_service
+source install/setup.bash
+Launch after your base sim, e.g. ros2 launch stomp_service smoother_with_moveit.launch.py launch_rviz:=true
+Exercise with the bundled client: python3 src/stomp_service/scripts/test_smoother_client.py
+planner_plugin now controls the backend (stomp_moveit/StompPlanner by default; set to chomp_interface/CHOMPPlanner to compare). Make sure the corresponding MoveIt plugin (e.g. ros-humble-moveit-planners-stomp) is installed on systems where you intend to use it.
+
+$ python3 src/stomp_service/scripts/test_smoother_client.py
+Traceback (most recent call last):
+File "/home/keehong/workspaces/ros-ur-gz-ruis/src/stomp_service/scripts/test_smoother_client.py", line 5, in <module>
+from stomp_service.srv import SmoothTrajectory
+ModuleNotFoundError: No module named 'stomp_service'
+
+
+ModuleNotFoundError just means the Python path doesn’t know about your newly built package yet. After you run colcon build --packages-select stomp_service, you need to source the workspace before invoking any scripts:
+
+source install/setup.bash
+python3 src/stomp_service/scripts/test_smoother_client.py
+(or keep that source in the same terminal where you launch/test). You can also call the script via ROS:
+
+ros2 run stomp_service test_smoother_client.py
+as long as the workspace is sourced.
+
+test results makes me suspect if the stomp service is ignoring all the intermediate waypoints but the start/end points
+
+
+That hunch is right: in the STOMP service we hand the intermediate waypoints to MoveIt via MotionPlanRequest.trajectory_constraints. Those are “path constraints”—intended to hold throughout the path—not checkpoints for the optimizer to pass through. Most planners (STOMP included) either ignore them or only use the final goal constraint, so the intermediate points you supplied aren’t enforced.
+
+A few options if you need those waypoints respected:
+
+Plan segment-by-segment: call the service repeatedly for each consecutive pair of mandatory waypoints, then stitch the segments. That guarantees the robot visits every point.
+Fall back to smoothing: if you already have a full waypoint list from OMPL, skip the planner call and run only the time-parameterisation/smoothing steps (similar to the CHOMP-based service).
+Custom handling: if all you need is a smooth seed, pass your coarse path as the seed trajectory and treat the intermediate waypoints as soft costs in STOMP. That would require changing the plugin configuration or using STOMP’s reference-trajectory facility.
+So yes: as written the STOMP pipeline will generally hit only the start and end goals. Use one of the techniques above if you need it to honour intermediate visits.
+
+this is the output message from launching the service. strangely it says chomp-planner is running.
+
+$ ros2 launch stomp_service smoother_with_moveit.launch.py
+[INFO] [launch]: All log files can be found below /home/keehong/.ros/log/2025-09-21-23-39-00-203501-keehong-900X3T-900X3U-22901
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [move_group-1]: process started with pid [22906]
+[INFO] [rviz2-2]: process started with pid [22908]
+[INFO] [trajectory_smoother_node-3]: process started with pid [22910]
+[rviz2-2] Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+[move_group-1] [WARN] [1758465541.413189699] [move_group.move_group]: Falling back to using the the move_group node namespace (deprecated behavior).
+[move_group-1] [INFO] [1758465541.419854560] [moveit_rdf_loader.rdf_loader]: Loaded robot model in 0 seconds
+[move_group-1] [INFO] [1758465541.419945276] [moveit_robot_model.robot_model]: Loading robot model 'ur'...
+[move_group-1] [INFO] [1758465541.419967666] [moveit_robot_model.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[move_group-1] [INFO] [1758465541.501548298] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Publishing maintained planning scene on 'monitored_planning_scene'
+[move_group-1] [INFO] [1758465541.501708924] [moveit.ros_planning_interface.moveit_cpp]: Listening to 'joint_states' for joint states
+[move_group-1] [INFO] [1758465541.502552298] [moveit_ros.current_state_monitor]: Listening to joint states on topic 'joint_states'
+[move_group-1] [INFO] [1758465541.503055345] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Listening to '/attached_collision_object' for attached collision objects
+[move_group-1] [INFO] [1758465541.503078399] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Starting planning scene monitor
+[move_group-1] [INFO] [1758465541.503426157] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Listening to '/planning_scene'
+[move_group-1] [INFO] [1758465541.503447105] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Starting world geometry update monitor for collision objects, attached objects, octomap updates.
+[move_group-1] [INFO] [1758465541.504031098] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Listening to 'collision_object'
+[move_group-1] [INFO] [1758465541.504601308] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Listening to 'planning_scene_world' for planning scene world geometry
+[move_group-1] [WARN] [1758465541.504795386] [moveit.ros.occupancy_map_monitor.middleware_handle]: Resolution not specified for Octomap. Assuming resolution = 0.1 instead
+[move_group-1] [ERROR] [1758465541.504817346] [moveit.ros.occupancy_map_monitor.middleware_handle]: No 3D sensor plugin(s) defined for octomap updates
+[move_group-1] [INFO] [1758465541.508967894] [moveit.ros_planning_interface.moveit_cpp]: Loading planning pipeline 'move_group'
+[move_group-1] [INFO] [1758465541.525826571] [moveit.ros_planning.planning_pipeline]: Using planning interface 'OMPL'
+[move_group-1] [INFO] [1758465541.529262503] [moveit_ros.add_time_optimal_parameterization]: Param 'move_group.path_tolerance' was not set. Using default value: 0.100000
+[move_group-1] [INFO] [1758465541.529295421] [moveit_ros.add_time_optimal_parameterization]: Param 'move_group.resample_dt' was not set. Using default value: 0.100000
+[move_group-1] [INFO] [1758465541.529307334] [moveit_ros.add_time_optimal_parameterization]: Param 'move_group.min_angle_change' was not set. Using default value: 0.001000
+[move_group-1] [INFO] [1758465541.529341668] [moveit_ros.fix_workspace_bounds]: Param 'move_group.default_workspace_bounds' was not set. Using default value: 10.000000
+[move_group-1] [INFO] [1758465541.529374119] [moveit_ros.fix_start_state_bounds]: Param 'move_group.start_state_max_bounds_error' was set to 0.100000
+[move_group-1] [INFO] [1758465541.529390074] [moveit_ros.fix_start_state_bounds]: Param 'move_group.start_state_max_dt' was not set. Using default value: 0.500000
+[move_group-1] [INFO] [1758465541.529405984] [moveit_ros.fix_start_state_collision]: Param 'move_group.start_state_max_dt' was not set. Using default value: 0.500000
+[move_group-1] [INFO] [1758465541.529411078] [moveit_ros.fix_start_state_collision]: Param 'move_group.jiggle_fraction' was not set. Using default value: 0.020000
+[move_group-1] [INFO] [1758465541.529416204] [moveit_ros.fix_start_state_collision]: Param 'move_group.max_sampling_attempts' was not set. Using default value: 100
+[move_group-1] [INFO] [1758465541.529427346] [moveit.ros_planning.planning_pipeline]: Using planning request adapter 'Add Time Optimal Parameterization'
+[move_group-1] [INFO] [1758465541.529431953] [moveit.ros_planning.planning_pipeline]: Using planning request adapter 'Fix Workspace Bounds'
+[move_group-1] [INFO] [1758465541.529435868] [moveit.ros_planning.planning_pipeline]: Using planning request adapter 'Fix Start State Bounds'
+[move_group-1] [INFO] [1758465541.529439259] [moveit.ros_planning.planning_pipeline]: Using planning request adapter 'Fix Start State In Collision'
+[move_group-1] [INFO] [1758465541.529442722] [moveit.ros_planning.planning_pipeline]: Using planning request adapter 'Fix Start State Path Constraints'
+[move_group-1] [INFO] [1758465541.565101850] [moveit.plugins.moveit_simple_controller_manager]: Added FollowJointTrajectory controller for scaled_joint_trajectory_controller
+[move_group-1] [INFO] [1758465541.569675817] [moveit.plugins.moveit_simple_controller_manager]: Added FollowJointTrajectory controller for joint_trajectory_controller
+[move_group-1] [INFO] [1758465541.569880180] [moveit.plugins.moveit_simple_controller_manager]: Returned 2 controllers in list
+[move_group-1] [INFO] [1758465541.569923430] [moveit.plugins.moveit_simple_controller_manager]: Returned 2 controllers in list
+[move_group-1] [INFO] [1758465541.570782057] [moveit_ros.trajectory_execution_manager]: Trajectory execution is not managing controllers
+[move_group-1] [INFO] [1758465541.570812676] [move_group.move_group]: MoveGroup debug mode is ON
+[trajectory_smoother_node-3] [WARN] [1758465541.605179863] [rcl.logging_rosout]: Publisher already registered for provided node name. If this is due to multiple nodes with the same name then all logs for that logger name will go out over the existing publisher. As soon as any node with that name is destructed it will unregister the publisher, preventing any further logs for that name from being published on the rosout topic.
+[move_group-1] [INFO] [1758465541.617228400] [move_group.move_group]:
+[move_group-1]
+[move_group-1] ********************************************************
+[move_group-1] * MoveGroup using:
+[move_group-1] * - ApplyPlanningSceneService
+[move_group-1] * - ClearOctomapService
+[move_group-1] * - CartesianPathService
+[move_group-1] * - ExecuteTrajectoryAction
+[move_group-1] * - GetPlanningSceneService
+[move_group-1] * - KinematicsService
+[move_group-1] * - MoveAction
+[move_group-1] * - MotionPlanService
+[move_group-1] * - QueryPlannersService
+[move_group-1] * - StateValidationService
+[move_group-1] ********************************************************
+[move_group-1]
+[move_group-1] [INFO] [1758465541.617297050] [moveit_move_group_capabilities_base.move_group_context]: MoveGroup context using planning plugin ompl_interface/OMPLPlanner
+[move_group-1] [INFO] [1758465541.617373813] [moveit_move_group_capabilities_base.move_group_context]: MoveGroup context initialization complete
+[move_group-1] Loading 'move_group/ApplyPlanningSceneService'...
+[move_group-1] Loading 'move_group/ClearOctomapService'...
+[move_group-1] Loading 'move_group/MoveGroupCartesianPathService'...
+[move_group-1] Loading 'move_group/MoveGroupExecuteTrajectoryAction'...
+[move_group-1] Loading 'move_group/MoveGroupGetPlanningSceneService'...
+[move_group-1] Loading 'move_group/MoveGroupKinematicsService'...
+[move_group-1] Loading 'move_group/MoveGroupMoveAction'...
+[move_group-1] Loading 'move_group/MoveGroupPlanService'...
+[move_group-1] Loading 'move_group/MoveGroupQueryPlannersService'...
+[move_group-1] Loading 'move_group/MoveGroupStateValidationService'...
+[move_group-1]
+[move_group-1] You can start planning now!
+[move_group-1]
+[trajectory_smoother_node-3] [INFO] [1758465541.690825250] [moveit_rdf_loader.rdf_loader]: Loaded robot model in 0.077 seconds
+[trajectory_smoother_node-3] [INFO] [1758465541.690872640] [moveit_robot_model.robot_model]: Loading robot model 'ur'...
+[trajectory_smoother_node-3] [INFO] [1758465541.690889026] [moveit_robot_model.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[trajectory_smoother_node-3] [WARN] [1758465541.710626659] [moveit_ros.robot_model_loader]: No kinematics plugins defined. Fill and load kinematics.yaml!
+[rviz2-2] [INFO] [1758465541.861631166] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-2] [INFO] [1758465541.861737158] [rviz2]: OpenGl version: 4.6 (GLSL 4.6)
+[rviz2-2] [INFO] [1758465541.889538363] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-2] Warning: class_loader.impl: SEVERE WARNING!!! A namespace collision has occurred with plugin factory for class rviz_default_plugins::displays::InteractiveMarkerDisplay. New factory will OVERWRITE existing one. This situation occurs when libraries containing plugins are directly linked against an executable (the one running right now generating this message). Please separate plugins out into their own library or just don't link against the library and use either class_loader::ClassLoader/MultiLibraryClassLoader to open.
+[rviz2-2] at line 253 in /opt/ros/humble/include/class_loader/class_loader/class_loader_core.hpp
+[trajectory_smoother_node-3] [INFO] [1758465543.143684351] [moveit.ros_planning.planning_pipeline]: Multiple planning plugins available. You should specify the '~planning_plugin' parameter. Using 'chomp_interface/CHOMPPlanner' for now.
+[trajectory_smoother_node-3] [INFO] [1758465543.145010840] [moveit.ros_planning.planning_pipeline]: Using planning interface 'CHOMP'
+[trajectory_smoother_node-3] [INFO] [1758465543.154029589] [trajectory_smoother]: Loaded planning pipeline with plugin 'stomp_moveit/StompPlanner'
+[trajectory_smoother_node-3] [INFO] [1758465543.154990725] [trajectory_smoother]: Trajectory smoother ready (plugin: stomp_moveit/StompPlanner) for group 'ur_manipulator'
+[rviz2-2] [ERROR] [1758465545.083956136] [moveit_ros_visualization.motion_planning_frame]: Action server: /recognize_objects not available
+[rviz2-2] [INFO] [1758465545.121344552] [moveit_ros_visualization.motion_planning_frame]: MoveGroup namespace changed: / -> . Reloading params.
+[rviz2-2] [INFO] [1758465545.266337527] [moveit_rdf_loader.rdf_loader]: Loaded robot model in 0.006 seconds
+[rviz2-2] [INFO] [1758465545.266528353] [moveit_robot_model.robot_model]: Loading robot model 'ur'...
+[rviz2-2] [INFO] [1758465545.266576302] [moveit_robot_model.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[rviz2-2] [INFO] [1758465545.457423540] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Starting planning scene monitor
+[rviz2-2] [INFO] [1758465545.458504627] [moveit_ros.planning_scene_monitor.planning_scene_monitor]: Listening to '/monitored_planning_scene'
+[rviz2-2] [INFO] [1758465545.849367991] [interactive_marker_display_105479837213008]: Connected on namespace: /rviz_moveit_motion_planning_display/robot_interaction_interactive_marker_topic
+[rviz2-2] [INFO] [1758465545.858684777] [moveit_ros_visualization.motion_planning_frame]: group ur_manipulator
+[rviz2-2] [INFO] [1758465545.858715611] [moveit_ros_visualization.motion_planning_frame]: Constructing new MoveGroup connection for group 'ur_manipulator' in namespace ''
+[rviz2-2] [INFO] [1758465545.882879056] [interactive_marker_display_105479837213008]: Sending request for interactive markers
+[rviz2-2] [INFO] [1758465545.896613024] [move_group_interface]: Ready to take commands for planning group ur_manipulator.
+[rviz2-2] [INFO] [1758465545.916443665] [interactive_marker_display_105479837213008]: Service response received for initialization
+
+
+That message is a bit misleading, but the pipeline really is using STOMP.
+
+What happens at start-up is:
+
+The PlanningPipeline constructor sees multiple planning plugins available and notices the private parameter planning_plugin hasn’t been set yet, so it prints the warning and temporarily instantiates the first plugin it finds (CHOMP).
+A moment later, our node explicitly loads the plugin named in planner_plugin (stomp_moveit/StompPlanner) and you can see the follow‑up line:
+[trajectory_smoother_node-3] [INFO] ... Loaded planning pipeline with plugin 'stomp_moveit/StompPlanner'
+That’s the one the service actually keeps and uses for planning. You can confirm by calling the service and checking the response: the trajectory will be the output of STOMP, not CHOMP.
+If you want to silence the warning, just set the parameter before the pipeline is initialised. One quick tweak is to add:
+
+this->set_parameter(rclcpp::Parameter("planning_plugin", planner_plugin_));
+right before constructing the PlanningPipeline in trajectory_smoother_node.cpp. After that, the loader finds the parameter immediately and stops printing the CHOMP fallback warning.
+
+So, despite the warning line, the smoother node really is running STOMP; the warning is just a quirk of the plugin loader when multiple planners are installed.
+
+[trajectory_smoother_node-3] [INFO] [1758465638.660129168] [chomp_planner]: CHOMP trajectory initialized using method: quintic-spline
+[trajectory_smoother_node-3] [INFO] [1758465638.660174034] [chomp_optimizer]: Active collision detector is: HYBRID
+[trajectory_smoother_node-3] [INFO] [1758465638.837231031] [chomp_optimizer]: First coll check took 0.177037 sec
+[trajectory_smoother_node-3] [INFO] [1758465638.863344837] [chomp_optimizer]: Collision cost 3.544409, smoothness cost: 12030.486312
+[trajectory_smoother_node-3] [INFO] [1758465638.864296530] [chomp_optimizer]: iteration: 0
+[trajectory_smoother_node-3] [INFO] [1758465638.872197112] [chomp_optimizer]: Chomp Got mesh to mesh safety at iter 0. Breaking out early.
+[trajectory_smoother_node-3] [INFO] [1758465638.872765133] [chomp_optimizer]: cCost 3.544409 over threshold 0.070000
+i forgot to attach:
+
+[trajectory_smoother_node-3] [INFO] [1758465638.872796485] [chomp_optimizer]: Chomp path is collision free
+[trajectory_smoother_node-3] [INFO] [1758465638.872812041] [chomp_optimizer]: Terminated after 1 iterations, using path from iteration 0
+[trajectory_smoother_node-3] [INFO] [1758465638.872822596] [chomp_optimizer]: Optimization core finished in 0.014985 sec
+[trajectory_smoother_node-3] [INFO] [1758465638.872833445] [chomp_optimizer]: Time per iteration 0.014996 sec
+[trajectory_smoother_node-3] [WARN] [1758465638.880650819] [moveit_trajectory_processing.time_optimal_trajectory_generation]: Joint acceleration limits are not defined. Using the default 1 rad/s^2. You can define acceleration limits in the URDF or joint_limits.yaml.
+[trajectory_smoother_node-3] [INFO] [1758465638.894066411] [trajectory_smoother]: Provided smoothed trajectory with 36 waypoints (vel_scale=0.100, acc_scale=0.100)
+
+
+Those lines show CHOMP still doing the optimisation—MoveIt is reporting “chomp_planner”, “chomp_optimizer”, etc. If the STOMP plugin were being used, you’d see messages from stomp_core (e.g. “STOMP iteration …”). There are two likely reasons:
+
+The STOMP plugin isn’t actually available at runtime (library not installed or not on the plugin path), so the planning pipeline falls back to CHOMP even though we asked for stomp_moveit/StompPlanner.
+The parameter isn’t being set before the planning pipeline tries to load a planner, so it grabs the first one it sees—again, CHOMP.
+To force STOMP you need both:
+
+Install the MoveIt STOMP plugin (ros-humble-moveit-planners-stomp), and
+Set the planning_plugin parameter before constructing the PlanningPipeline (or via your launch file).
+Once the default planner is really the STOMP plugin, the logs will mention stomp_planner/STOMP instead of CHOMP.
+
+ruis$ sudo apt install ros-humble-moveit-planners-stomp
+[sudo] keehong 암호:
+패키지 목록을 읽는 중입니다... 완료
+의존성 트리를 만드는 중입니다... 완료
+상태 정보를 읽는 중입니다... 완료
+E: ros-humble-moveit-planners-stomp 패키지를 찾을 수 없습니다
+keehong@keehong-900X3T-900X3U:~/workspaces/ros-ur-gz-ruis$
+
+then how does moveit turotial has a section on stomp? do i need to install from source?
+
+
+ros-humble-moveit-planners-stomp never made it into the binary apt repos for Humble, even though the MoveIt docs still mention STOMP. Right now it’s source-only. If you really want to run it you have to pull the MoveIt2 STOMP plugin from source and build it in your workspace:
+
+# assuming you already sourced /opt/ros/humble/setup.bash
+cd ~/workspaces/ros-ur-gz-ruis/src
+git clone https://github.com/ros-planning/moveit2.git --branch humble
+# (optional) prune to just the stomp plugin to speed up build
+
+cd ..
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select stomp_moveit   # or build the whole tree
+source install/setup.bash
+Check the MoveIt2 repo for the exact branch/package names (stomp_moveit, stomp_core, etc.). Once you build those packages, the plugin library will be on your AMENT_PREFIX_PATH, and you can set planner_plugin to stomp_moveit/StompPlanner without the fallback to CHOMP.
+
+actually the source is at https://github.com/moveit/moveit2/tree/humble and can you see what's in there?
+
+
+That repository does include the STOMP planner under MoveIt2’s moveit_planners directory—but to use it you’ll need to build from source. On the humble branch you’ll find (among other subdirectories):
+
+moveit_planners/stomp_moveit/ – ROS 2 wrapper for STOMP, along with examples/config.
+moveit_planners/stomp_core/ – the core STOMP solver.
+Supporting packages (moveit_ros_planning_interface, etc.) needed for integration.
+Because there’s no prebuilt .deb on Humble, the workflow is:
+
+cd ~/workspaces/ros-ur-gz-ruis/src
+git clone https://github.com/moveit/moveit2.git --branch humble
+# Optionally remove packages you don’t want to build
+cd ..
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select stomp_core stomp_moveit  # or build moveit2 entirely
+source install/setup.bash
+After that the plugin library (stomp_moveit/StompPlanner) will be discoverable, and setting planner_plugin to that name will actually load STOMP instead of falling back to CHOMP.
+
+i have cloned it but couldn't locate stomp
+
+
+You’re not missing it—the humble branch of moveit2 simply doesn’t contain STOMP. Under moveit_planners you’ll see chomp, ompl, pilz, trajopt, etc., but nothing named stomp. STOMP hasn’t been ported to ROS 2/MoveIt 2 yet, even though some docs still mention it.
+
+So there’s nothing to build or point at in that repo; you’re limited to the planners that do ship (OMPL, CHOMP, Pilz, TrajOpt…). If you need STOMP‑style optimisation you’d have to implement it yourself or stick with MoveIt 1 on ROS 1 where the plugin still exists.
+
+btw, there is an issue. i understand that it fell back to chomp since no stomp. then, the result should not be different from the chomp smoother but the stomp smoother ignored waypoint in the middle. maybe you need to check the code.
+
+
+Right now the “STOMP” node behaves very differently from the original CHOMP service, even when the pipeline falls back to the CHOMP plugin:
+
+In the CHOMP smoother we never ask MoveIt to re-plan; we just convert your full waypoint list into a RobotTrajectory, feed it directly to the CHOMP optimiser, and then time‑parameterise. Every waypoint stays in place unless CHOMP nudges it slightly for smoothness.
+In the STOMP version we hand the same waypoints to MoveIt’s planning pipeline as goal + trajectory constraints. The planner ignores those middle constraints (they’re treated as “stay within these limits”, not “pass exactly through this state”), so it returns a trajectory that goes straight from start to final goal. Because the service uses that pipeline result whenever generatePlan() succeeds—even if it’s the CHOMP planner—you lose the intermediate points.
+So when the plugin silently shrugs back to chomp_interface/CHOMPPlanner, it’s still executing the planning pipeline path, not the CHOMP post-processing path you’re expecting.
+
+To get identical behaviour to the CHOMP smoother you need to skip the planning pipeline entirely when STOMP isn’t available (or by default), and run the same direct CHOMP optimisation that the original service uses. In other words: reuse your waypoint seed, call the CHOMP optimizer yourself, and only fall back to the input trajectory if that optimizer fails. That preserves the intermediate waypoints.
+
+pipeline is the difference? i don't get it quite well. is it because the interface to use pipeline does not support multiple waypoints but goal points with constraints?
+
+
+Exactly. The MoveIt planning pipeline interface is built around a single MotionPlanRequest: you give it a start state, a goal (usually joint or pose constraints), plus optional path constraints or costs. Those path constraints act like “stay within this band” rather than “visit this exact state.” There’s no native API to tell the planner “hit these waypoints in order”—the planner is free to find any path that satisfies the constraints. So when we hand your intermediate waypoints in trajectory_constraints, the planner just ignores them unless they over-constrain the space.
+
+In contrast, the original CHOMP smoother never invokes the pipeline. It treats your entire waypoint list as a seed trajectory, runs CHOMP directly on that discretised path, and preserves every waypoint (modulo small nudges). That’s why it respects your intermediate points.
+
+So yes—the pipeline vs. direct optimisation is the difference: the pipeline interface doesn’t support multiple mandatory waypoints, while the direct CHOMP call operates on the whole waypoint sequence you provide.
+
+if that's the case it seems using genuine moveit interface (such as multiple pipelining) is not a good idea.
+
+
+Agreed—the MoveIt pipeline path is great when you just need a planner to connect a start and goal, but it’s not built to “visit these exact waypoints in-order.” If you already have a discrete path (start + intermediate + goal) the safer approach is what the CHOMP smoother does: treat those points as the seed trajectory, run the optimizer directly on them, and time-parameterize afterward. That keeps your waypoints intact and avoids the pipeline’s goal-only bias.
+
+got it. then what about the warning. no CUBIC, so using default quintic ?
+
+
+That warning just tells you CHOMP fell back to its default seed initializer. In the parameters we set chomp.trajectory_initialization_method: "CUBIC", but CHOMP only accepts the lower-case strings quintic-spline, linear, cubic, or fillTrajectory. Because "CUBIC" isn’t one of the valid tokens, setTrajectoryInitializationMethod() rejects it and CHOMP stays with its default (quintic-spline), which is why you see:
+
+[chomp_planner]: CHOMP trajectory initialized using method: quintic-spline
+If you really want a cubic initializer, just change the YAML entry to lowercase:
+
+trajectory_smoother_node:
+  ros__parameters:
+    …
+    chomp.trajectory_initialization_method: "cubic"
+(or linear, quintic-spline, etc.) and restart the node; the log will then reflect the method you selected.
+
+The other warning (Joint acceleration limits are not defined…) is unrelated—it just means TOTG didn’t find acceleration limits in the robot model, so it’s using 1 rad/s². You can set those in your URDF or joint_limits.yaml if you’d like to eliminate that message.
+
+two questions now: should i use quintic or cubic. what if i 'd like to limit acc for the optimized trajectory even lower than the robot's limit in joint_limits.yaml? did we specify the desired safe limit somewhere in the code?
+
+
+For CHOMP’s seed initializer, either quintic-spline (the default) or cubic will work. quintic-spline tends to start with zero velocity/acceleration at the ends, so it’s the safer “zero-jerk” guess; cubic gives a simple spline that may respond a bit quicker but can introduce initial velocity/acceleration discontinuities. I usually stick with quintic-spline unless you have a specific reason to mimic a cubic reference.
+
+To cap accelerations more aggressively than the robot’s nominal limits, use the scaling factors we pass into the time-parameterization step. In the launch/YAML they default to default_velocity_scaling and default_acceleration_scaling, and every service request can override them:
+
+req.max_velocity_scaling_factor = 0.5  # 50% of model limit
+req.max_acceleration_scaling_factor = 0.3  # 30% of model limit
+Those factors multiply whatever limits MoveIt knows about (from URDF/joint_limits.yaml). If a limit is missing, TOTG guesses 1 rad/s², so add your own entries to joint_limits.yaml if you want a defined ceiling, then scale down via the service parameters for runtime “safe” limits.
+
+let's modify the code. replace CUBIC with quintic-spline. (which file was it?)
+also, where is the joint_limits.yaml?
+
+
+You already have the initializer parameter in trajectory_smoother_service/config/smoother_parameters.yaml. Change the last line from
+
+chomp.trajectory_initialization_method: "CUBIC"
+to
+
+chomp.trajectory_initialization_method: "quintic-spline"
+(rebuild/relaunch to pick it up).
+
+For joint limits, MoveIt pulls them from the UR MoveIt package—specifically /opt/ros/humble/share/ur_moveit_config/config/joint_limits.yaml (if you’re using the binary install). That file only contains custom entries (like max_acceleration), and MoveIt merges them with the values embedded in the URDF. You can copy that file into your workspace and customise it, or supply a different YAML through your launch arguments if you want to tighten limits further.
+
+ok. i guess best practice is copy the yaml file in 'share' into my repo's config folder and let the launch file look at it.
+
+
+Yep, that’s the standard approach: copy the joint limits YAML into your package’s config/ directory, tweak it as needed, and point your launch file at that version (e.g. by overriding the joint_limits_yaml argument). Keeps everything under version control and consistent across deployments.
+
+declared_arguments.append(
+    DeclareLaunchArgument(
+        "moveit_joint_limits_file",
+        default_value="joint_limits.yaml",
+        description="MoveIt joint limits YAML file.",
+    )
+)
+How to modify this to refer to the file that i just copied
+
+
+Update the DeclareLaunchArgument so the default points at the copy in your package. Replace that block with:
+
+declared_arguments.append(
+    DeclareLaunchArgument(
+        "moveit_joint_limits_file",
+        default_value=PathJoinSubstitution([
+            FindPackageShare("trajectory_smoother_service"),
+            "config",
+            "joint_limits.yaml",
+        ]),
+        description="MoveIt joint limits YAML file.",
+    )
+)
+That uses FindPackageShare and PathJoinSubstitution to resolve the file in your package’s config/ directory. Any overrides you pass on the command line will still work.
+
+[trajectory_smoother_node-2] [WARN] [1758469096.157281709] [moveit_ros.robot_model_loader]: No kinematics plugins defined. Fill and load kinematics.yaml!
+
+where to find the file and where to put it
+
+
+That warning just means MoveIt didn’t get a kinematics.yaml parameter for your robot. The UR Humble packages ship one at
+/opt/ros/humble/share/ur_moveit_config/config/kinematics.yaml.
+
+Two ways to silence the warning:
+
+Reference the installed file – make sure your launch file passes it (the default we set does this):
+
+kinematics_yaml = PathJoinSubstitution([
+    FindPackageShare("ur_moveit_config"), "config", "kinematics.yaml"
+])
+and include kinematics_yaml in the node’s parameters.
+
+Copy it into your repo – place it under, say, trajectory_smoother_service/config/kinematics.yaml, then change the launch code to point at your copy (using FindPackageShare("trajectory_smoother_service")). This keeps the exact kinematics data under version control on your side.
+
+Once the node sees that YAML, the warning disappears and MoveIt loads the kinematics plugin correctly.
+
+but why didn't you put that in the first place? is it optional? why?
+
+
+MoveIt needs kinematics.yaml only if the launch file doesn’t already provide kinematics parameters. In the standard UR setup, ur_moveit.launch.py loads it, so we relied on that and kept the smoother focused on CHOMP/TOTG settings. When you run the smoother in isolation, the warning just means no kinematics plugin was declared yet; it falls back to the default KDL solver and keeps going. Copying the file into your package and pointing the launch config at it simply removes the warning and makes the dependency explicit, but it isn’t strictly required for the optimiser to run.
+
+where to put kinematics_yaml = PathJoinSubstitution([
+FindPackageShare("ur_moveit_config"), "config", "kinematics.yaml"
+])
+
+
+Define it near the other path substitutions in whatever launch file starts MoveIt (e.g. smoother_with_moveit.launch.py or ur_sim_moveit.launch.py). Then include it in the node’s parameters list. Example:
+
+kinematics_yaml = PathJoinSubstitution([
+    FindPackageShare("ur_moveit_config"),
+    "config",
+    "kinematics.yaml",
+])
+
+move_group_node = Node(
+    package="moveit_ros_move_group",
+    executable="move_group",
+    parameters=[
+        robot_description,
+        robot_description_semantic,
+        kinematics_yaml,          # <- add here
+        ...
+    ],
+)
+Do the same for any other node that needs the file (e.g. RViz config if it loads its own parameters). If you’ve copied the YAML into your package, just swap FindPackageShare("ur_moveit_config") for your package name.
+
+trajectory_smoother_node = Node(
+    package="trajectory_smoother_service",
+    executable="trajectory_smoother_node",
+    name="trajectory_smoother",
+    output="screen",
+    parameters=[
+        smoother_params_file,
+        {"use_sim_time": use_sim_time},
+    ],
+)
+Do you mean here?
+
+
+For the smoother node you don’t need kinematics.yaml—it just takes its own config plus the use_sim_time flag, so the snippet you showed can stay as-is.
+
+The place that needs kinematics_yaml is the MoveIt move_group launch stanza (and possibly RViz if it loads planning params). In the same launch file you should already have something like:
+
+kinematics_yaml = PathJoinSubstitution([
+    FindPackageShare("ur_moveit_config"),
+    "config",
+    "kinematics.yaml",
+])
+
+move_group_node = Node(
+    package="moveit_ros_move_group",
+    executable="move_group",
+    parameters=[
+        robot_description,
+        robot_description_semantic,
+        kinematics_yaml,
+        …
+    ],
+)
+So add the new PathJoinSubstitution near the other path definitions (before the node declarations) and list kinematics_yaml in move_group_node.parameters. No need to touch the smoother-node parameters unless you want to pass it the kinematics for some reason.
+
+there is no move_group_node in all these launch files
+
+
+Good eye—ur_sim_moveit.launch.py doesn’t instantiate MoveIt nodes directly; it includes ur_moveit_config/launch/ur_moveit.launch.py. That MoveIt launch file is where the move_group node lives and where the kinematics parameters are loaded. Because the default arguments in ur_sim_moveit.launch.py already point to the installed ur_moveit_config, you don’t need to modify the wrapper: the included MoveIt launch automatically loads config/kinematics.yaml.
+
+If you copied joint_limits.yaml (or kinematics.yaml) into your own package and want MoveIt to use those copies, just pass an override when you launch. For example, in your own launch file:
+
+DeclareLaunchArgument(
+    "moveit_joint_limits_file",
+    default_value=PathJoinSubstitution([
+        FindPackageShare("trajectory_smoother_service"),
+        "config",
+        "joint_limits.yaml",
+    ]),
+    description="MoveIt joint limits YAML file.",
+),
+and include that in the parameters you hand to ur_moveit.launch.py.
+
+So the takeaway:
+
+No need to edit ur_sim_moveit.launch.py—it already includes the standard MoveIt setup.
+Override the relevant arguments (joint limits, kinematics) when you launch if you want MoveIt to point at your local copies.
+nope you're wrong. this moveit launch file doesn't have move_group node
+
+Copyright (c) 2022 Stogl Robotics Consulting UG (haftungsbeschränkt)
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+* Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+* Neither the name of the {copyright_holder} nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+Author: Denis Stogl
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+from launch_ros.substitutions import FindPackageShare
+
+def launch_setup(context, *args, **kwargs):
+# Initialize Arguments
+ur_type = LaunchConfiguration("ur_type")
+safety_limits = LaunchConfiguration("safety_limits")
+# General arguments
+runtime_config_package = LaunchConfiguration("runtime_config_package")
+controllers_file = LaunchConfiguration("controllers_file")
+description_package = LaunchConfiguration("description_package")
+description_file = LaunchConfiguration("description_file")
+moveit_config_package = LaunchConfiguration("moveit_config_package")
+moveit_config_file = LaunchConfiguration("moveit_config_file")
+prefix = LaunchConfiguration("prefix")
+
+ur_control_launch = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        [FindPackageShare("ur_simulation_gz"), "/launch", "/ur_sim_control.launch.py"]
+    ),
+    launch_arguments={
+        "ur_type": ur_type,
+        "safety_limits": safety_limits,
+        "runtime_config_package": runtime_config_package,
+        "controllers_file": controllers_file,
+        "description_package": description_package,
+        "description_file": description_file,
+        "prefix": prefix,
+        "launch_rviz": "false",
+    }.items(),
+)
+
+ur_moveit_launch = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        [FindPackageShare("ur_moveit_config"), "/launch", "/ur_moveit.launch.py"]
+    ),
+    launch_arguments={
+        "ur_type": ur_type,
+        "safety_limits": safety_limits,
+        "description_package": description_package,
+        "description_file": description_file,
+        "moveit_config_package": moveit_config_package,
+        "moveit_config_file": moveit_config_file,
+        "prefix": prefix,
+        "use_sim_time": "true",
+        "launch_rviz": "true",
+    }.items(),
+)
+
+nodes_to_launch = [
+    ur_control_launch,
+    ur_moveit_launch,
+]
+
+return nodes_to_launch
+def generate_launch_description():
+declared_arguments = []
+# UR specific arguments
+declared_arguments.append(
+DeclareLaunchArgument(
+"ur_type",
+description="Type/series of used UR robot.",
+choices=[
+"ur3",
+"ur3e",
+"ur5",
+"ur5e",
+"ur7e",
+"ur10",
+"ur10e",
+"ur12e",
+"ur16e",
+"ur15",
+"ur20",
+"ur30",
+],
+default_value="ur5e",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"safety_limits",
+default_value="true",
+description="Enables the safety limits controller if true.",
+)
+)
+# General arguments
+declared_arguments.append(
+DeclareLaunchArgument(
+"runtime_config_package",
+default_value="ur_simulation_gz",
+description='Package with the controller's configuration in "config" folder.
+Usually the argument is not set, it enables use of a custom setup.',
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"controllers_file",
+default_value="ur_controllers.yaml",
+description="YAML file with the controllers configuration.",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"description_package",
+default_value="ur_description",
+description="Description package with robot URDF/XACRO files. Usually the argument
+is not set, it enables use of a custom description.",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"description_file",
+default_value="ur.urdf.xacro",
+description="URDF/XACRO description file with the robot.",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"moveit_config_package",
+default_value="ur_moveit_config",
+description="MoveIt config package with robot SRDF/XACRO files. Usually the argument
+is not set, it enables use of a custom moveit config.",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"moveit_config_file",
+default_value="ur.srdf.xacro",
+description="MoveIt SRDF/XACRO description file with the robot.",
+)
+)
+declared_arguments.append(
+DeclareLaunchArgument(
+"prefix",
+default_value='""',
+description="Prefix of the joint names, useful for
+multi-robot setup. If changed than also joint names in the controllers' configuration
+have to be updated.",
+)
+)
+
+return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
+
+Right—the ur_sim_moveit.launch.py stub just chains two other launch files:
+
+ur_simulation_gz/launch/ur_sim_control.launch.py (brings up Gazebo + controllers)
+ur_moveit_config/launch/ur_moveit.launch.py (this is the one that actually launches move_group, RViz, etc.)
+If you unzip /opt/ros/humble/share/ur_moveit_config/launch/ur_moveit.launch.py, you’ll find the Node(...) blocks for MoveIt, including:
+
+move_group_node = Node(
+    package="moveit_ros_move_group",
+    executable="move_group",
+    parameters=[
+        robot_description,
+        robot_description_semantic,
+        robot_description_kinematics,
+        robot_description_planning,
+        ompl_planning_pipeline_config,
+        trajectory_execution,
+        moveit_controllers,
+        planning_scene_monitor_parameters,
+        {"use_sim_time": use_sim_time},
+        warehouse_ros_config,
+    ],
+    ...
+)
+So when you tweak the moveit_joint_limits_file or kinematics settings via the arguments you pass into ur_sim_moveit.launch.py, they propagate down into that included launch file. If you want to point MoveIt at a custom joint limits YAML, either override the moveit_joint_limits_file argument when launching, or edit ur_moveit.launch.py in your workspace to load it from your package.
+
+let's get back to the warning. why did it show?
+
+
+That warning came from our smoother node because, unlike move_group, we never loaded robot_description_kinematics (the contents of kinematics.yaml) into the node’s parameter space. When the planning pipeline spins up, it looks for that parameter to know which kinematics plugin to instantiate. Since it’s missing, MoveIt logs “No kinematics plugins defined. Fill and load kinematics.yaml!” and falls back to the default KDL kinematics solver. The warning is harmless, but if you want to silence it, pass the same kinematics.yaml that MoveIt uses into the smoother node’s parameters.
+
+Falling back to KDL kinematics solver is harmless? what is it then?
+
+
+Yes—MoveIt’s default kinematics plugin for most robots is the generic KDL solver. If the node doesn’t receive a robot_description_kinematics parameter (the contents of kinematics.yaml), the planner simply logs a warning and instantiates KDL instead of any custom IK plugin you might have configured (e.g. IKFast). The solver still works: it provides both forward and numerical inverse kinematics, so your planning succeeds. The log is just a reminder that no specific kinematics plugin was declared.
+
+If you want to silence it—or switch back to the UR-specific IK—you can pass the kinematics.yaml parameters into the smoother node via the launch files (the same way move_group loads them). Otherwise, you can safely ignore the warning knowing that KDL is the fallback.
+
+show me how: If you want to silence it—or switch back to the UR-specific IK—you can pass the kinematics.yaml parameters into the smoother node via the launch files (the same way move_group loads them).
+
+
+To feed the same kinematics settings into the smoother node, point it at the kinematics.yaml that MoveIt already uses and add that to the node’s parameter list.
+
+Locate the file (from the UR MoveIt package):
+
+/opt/ros/humble/share/ur_moveit_config/config/kinematics.yaml
+Optionally copy it into your own package (e.g. trajectory_smoother_service/config/kinematics.yaml) so it's under version control.
+
+Reference it in the launch file (e.g. trajectory_smoother_service/launch/smoother_with_moveit.launch.py):
+
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+
+kinematics_yaml = PathJoinSubstitution([
+    FindPackageShare("trajectory_smoother_service"),  # or "ur_moveit_config" if you use the installed one
+    "config",
+    "kinematics.yaml",
+])
+Add it to the smoother node’s parameters:
+
+trajectory_smoother_node = Node(
+    package="trajectory_smoother_service",
+    executable="trajectory_smoother_node",
+    name="trajectory_smoother",
+    output="screen",
+    parameters=[
+        smoother_params_file,
+        kinematics_yaml,
+        {"use_sim_time": use_sim_time},
+    ],
+)
+With that in place, the smoother node receives the same kinematics plugin map as MoveIt’s move_group node, so the “No kinematics plugins defined” warning disappears and the UR-specific solver is used.
+
+since we confirmed stomp is not available ros humble, should i remove the cloned repo
+
+
+If you’re not going to build STOMP from source, you can safely remove the moveit2 clone—it’s fairly large and has no effect on your workspace unless you actually build from it. Just delete the folder under src:
+
+rm -rf src/moveit2
+(or move it elsewhere if you want to keep it for later). No other cleanup is needed; your existing trajectory_smoother_service package will keep working with the standard MoveIt binaries.
+
+in addition to max v and a scaling can we set min time duration for the optimized path?
+
+
+MoveIt’s time parameterization doesn’t expose a direct “minimum duration” flag. It takes the geometry of the path plus the velocity/acceleration limits (scaled by the factors you set) and computes the shortest feasible timeline. To stretch the trajectory you have two practical levers:
+
+Use tighter limits – drop max_velocity_scaling_factor and/or max_acceleration_scaling_factor until the resulting duration meets your needs.
+Post-scale the timeline – after TOTG runs you can multiply every time_from_start by a constant > 1 (and scale velocities/accelerations accordingly) to enforce a minimum duration.
+If you want that second option baked into the service, you could add a min_duration_scale parameter and apply it before returning/publishing the trajectory. But out of the box there’s no single flag that guarantees “at least X seconds” without stretching the time stamps yourself.
+
+how to control the number of points in the output path?
+
+
+In this smoother the waypoint count comes almost entirely from the seed you hand it:
+
+The service converts each JointTrajectoryPoint you send into a robot-state waypoint. CHOMP optimises along that discrete path, so it keeps the same number of states (modulo small shifts).
+The time-parameterisation step doesn’t insert or remove points—it just stamps each one.
+The only knob you have inside the node is initial_discretization: if your request has fewer than two points we won’t fabricate anything beyond a simple interpolation. If you need more resolution, there are two options:
+
+Up-sample before the service — densify your waypoint list (e.g. interpolate to the resolution you want) and send the larger array; CHOMP will honour it.
+Post-sample after smoothing — take the returned trajectory and resample it yourself at whatever spacing you prefer.
+There isn’t a built-in “output N points” parameter, so controlling the count is either by seeding more samples or resampling the result.
+
+[INFO] [1758472039.620732076] [test_smoother_client]: Calling smooth_trajectory service...
+[INFO] [1758472039.631526874] [test_smoother_client]: SUCCESS: CHOMP optimisation success
+[INFO] [1758472039.631956950] [test_smoother_client]: Received trajectory with 84 points
+
+Here, 84 comes from CHOMP? it needed this many points to accomplish the desired smoothness?
+
+
+Yes—those extra samples come straight from CHOMP. Even though you only passed three waypoints, the CHOMP optimizer internally pads and resamples the path when fillInFromTrajectory() is called. It adds additional states at the start and end (and often some evenly spaced in the interior) to support its finite-difference smoothing kernels. When we later convert the optimized ChompTrajectory back into a RobotTrajectory, we iterate over every internal waypoint and hand them all to TOTG, so you see the larger count (84 points in your case).
+
+That’s expected; CHOMP expands the seed path to get enough resolution for smoothness. If you need fewer points at the end, you can downsample the trajectory after smoothing, but the high density is normal behaviour.
+
+OK. i guess this is not dense enough for my controller to follow. Is it recommended to interpolate the output path with controller dt in the controller node?
+
+
+Exactly—after smoothing you can resample the trajectory at your controller’s update period before sending it. Grab each joint’s position/velocity/acceleration at discrete controller_dt intervals so the controller receives a time series that matches its servo rate. That post-processing is quite common and lets you keep CHOMP’s smoothness while delivering the dense stream your controller expects.
+
+things to add to readme:
+how to set joint limits. velocity and acceleration. whether to use it or not.
+alternatives: how to modify urdf to adjust vel/acc caps for limited dynamics
+
+the pratice where output path is further interpolated.
+
+
+try again
+
+
+Docs updated—you’ll see new sections covering joint-limit handling, kinematics settings, and post-processing/interpolation guidance. Let me know if you want more detail (links to MoveIt docs, etc.).
+
+Ask for follow-up changes
+
+
+
+Auto context
+
+
+Local
+
+Agent
+
+gpt-5-codex
+medium

@@ -15,6 +15,9 @@ try:
 except ImportError:  # pragma: no cover
     np = None
 
+def lerp(a, b, t): return [ai*(1-t)+bi*t for ai, bi in zip(a,b)]
+
+
 def test_smoother():
     rclpy.init()
     node = Node('test_smoother_client')
@@ -29,13 +32,26 @@ def test_smoother():
     # 테스트 요청 생성
     request = SmoothTrajectory.Request()
     
-    # 테스트 waypoints
-    test_waypoints = [
-        [0.0, -1.57, 1.57, -1.57, -1.57, 0.0],
-        [0.5, -1.4, -.1, -1.2, -1.2, 0.5],
-        [1.0, -0.8, 0.8, -0.8, -0.8, 1.0]
-    ]
-    
+    # # 테스트 waypoints
+    # test_waypoints = [
+    #     [0.0, -1.57, 1.57, -1.57, -1.57, 0.0],
+    #     [0.5, -1.4, -.1, -1.2, -1.2, 0.5],
+    #     [1.0, -0.8, 0.8, -0.8, -0.8, 1.0]
+    # ]
+
+    # # 의도적으로 베이스 근처를 스치게 하는 짧고 ‘빡빡한’ 구간
+    # A = [0.00, -2.00,  2.10, -1.80, -1.57, 0.00]
+    # B = [0.35, -1.25,  1.60, -1.50, -1.57, 0.00]
+
+    A = [0.0, -1.57, 1.56, -1.57, -1.57, 0.0]
+    B = [0.0, -1.77, 1.76, -1.37, -1.57, 0.0]
+    C = [0.0, -1.57, 1.76, -1.77, -1.27, 0.0]
+    # 4점(중간 2개) 경로 생성
+    P = [A, lerp(A,B,1/3), lerp(A,B,2/3), B, C]
+
+    # 요청에 넣기
+    test_waypoints = P #[p for p in P]
+
     for waypoint in test_waypoints:
         point = JointTrajectoryPoint()
         point.positions = waypoint
@@ -43,6 +59,8 @@ def test_smoother():
     
     request.max_velocity_scaling_factor = 0.1
     request.max_acceleration_scaling_factor = 0.1
+    request.totg_resample_dt = 0.008
+    request.hermite_resample_dt = 0.002
     
     # 서비스 호출
     node.get_logger().info('Calling smooth_trajectory service...')

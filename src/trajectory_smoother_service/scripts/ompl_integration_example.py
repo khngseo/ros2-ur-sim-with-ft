@@ -55,6 +55,8 @@ class OMPLPlannerWithSmoother(Node):
         
         request.max_velocity_scaling_factor = 0.1
         request.max_acceleration_scaling_factor = 0.1
+        request.totg_resample_dt = 0.0
+        request.hermite_resample_dt = 0.0
         
         # 서비스 호출
         future = self.smoother_client.call_async(request)

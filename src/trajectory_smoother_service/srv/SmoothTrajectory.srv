@@ -2,8 +2,10 @@
 trajectory_msgs/JointTrajectoryPoint[] waypoints
 float64 max_velocity_scaling_factor 0.1
 float64 max_acceleration_scaling_factor 0.1
+float64 totg_resample_dt
+float64 hermite_resample_dt
 ---
 # Response  
-trajectory_msgs/JointTrajectory trajectory
 bool success
+trajectory_msgs/JointTrajectory trajectory
 string message

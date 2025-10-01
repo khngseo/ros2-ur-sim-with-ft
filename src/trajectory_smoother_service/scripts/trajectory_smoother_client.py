@@ -31,6 +31,8 @@ class TrajectorySmoothClient:
         
         request.max_velocity_scaling_factor = max_vel_scale
         request.max_acceleration_scaling_factor = max_acc_scale
+        request.totg_resample_dt = 0.0
+        request.hermite_resample_dt = 0.0
         
         # 서비스 호출
         future = self.client.call_async(request)
